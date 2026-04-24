@@ -698,7 +698,7 @@ textarea{resize:vertical;min-height:80px;}
   <div class="nav-item" data-view="pipeline" onclick="showView('pipeline')"><span>🔀</span>Pipeline <span class="nav-badge" id="nb-pipeline">0</span></div>
 
   <div class="sidebar-label">Outreach</div>
-  <div class="nav-item" data-view="send-emails" onclick="showView('send-emails')" id="nav-send-emails" style="display:none"><span>📨</span>Send Emails <span class="nav-badge" id="nb-send">0</span></div>
+  <div class="nav-item" data-view="send-emails" onclick="showView('send-emails')" id="nav-send-emails"><span>📨</span>Send Emails <span class="nav-badge" id="nb-send">0</span></div>
   <div class="nav-item" data-view="sequences" onclick="showView('sequences')"><span>📧</span>Sequences <span class="nav-badge" id="nb-seq">0</span></div>
   <div class="nav-item" data-view="instantly-view" onclick="showView('instantly-view')"><span>🚀</span>Instantly.ai</div>
 
@@ -1376,12 +1376,12 @@ textarea{resize:vertical;min-height:80px;}
   </div>
 
   <div class="card" style="margin-bottom:14px">
-    <div class="settings-title">🔌 Hidden Integrations</div>
+    <div class="settings-title">📨 Gmail Integration</div>
     <div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);margin-bottom:12px;line-height:1.7">
-      Gmail API integration is built but dormant. Activate it when ready.
+      Gmail API is active — connect your account in <strong style="color:#00bfa6">Integrations → Gmail API</strong> to send Touch 1 emails personally from your inbox.
     </div>
-    <button class="btn btn-secondary btn-sm" onclick="toggleGmailIntegration()">
-      <span id="gmail-toggle-label">🔓 Activate Gmail Integration</span>
+    <button class="btn btn-secondary btn-sm" onclick="showView('integrations')">
+      Go to Integrations →
     </button>
   </div>
 
@@ -1518,7 +1518,7 @@ textarea{resize:vertical;min-height:80px;}
     <div class="int-card"><div class="int-card-header"><div class="int-logo">🔭</div><div><div class="int-name">Apollo.io</div><div class="int-desc">Contact enrichment</div></div></div><div><span class="status-pill" id="st-apollo">○ not connected</span></div><div class="form-group"><label>API Key</label><input id="key-apollo" type="password" placeholder="Apollo key..."></div><div class="hint">Enriches contacts with title, industry, LinkedIn, phone, company size.</div><button class="btn btn-primary btn-sm" onclick="saveKey('apollo')">Save Encrypted</button></div>
     <div class="int-card"><div class="int-card-header"><div class="int-logo">🚀</div><div><div class="int-name">Instantly.ai</div><div class="int-desc">Email sequences</div></div></div><div><span class="status-pill" id="st-instantly">○ not connected</span></div><div class="form-group"><label>API Key</label><input id="key-instantly" type="password" placeholder="Instantly key..."></div><div class="hint">Pushes contacts into campaigns and syncs reply status back.</div><button class="btn btn-primary btn-sm" onclick="saveKey('instantly')">Save Encrypted</button></div>
     <div class="int-card"><div class="int-card-header"><div class="int-logo">📋</div><div><div class="int-name">Monday.com</div><div class="int-desc">CRM pipeline sync</div></div></div><div><span class="status-pill" id="st-monday">○ not connected</span></div><div class="form-group"><label>API Token (v2)</label><input id="key-monday" type="password" placeholder="monday.com token..."></div><div class="hint">Pull contact lists from boards, push qualified deals to pipeline.</div><button class="btn btn-primary btn-sm" onclick="saveKey('monday')">Save Encrypted</button></div>
-    <div class="int-card" id="gmail-int-card" style="display:none"><div class="int-card-header"><div class="int-logo">📨</div><div><div class="int-name">Gmail API</div><div class="int-desc">Send Touch 1 personally from your address</div></div></div>
+    <div class="int-card" id="gmail-int-card"><div class="int-card-header"><div class="int-logo">📨</div><div><div class="int-name">Gmail API</div><div class="int-desc">Send Touch 1 personally from your address</div></div></div>
       <div><span class="status-pill" id="st-gmail">○ not connected</span></div>
       <div id="gmail-connect-section">
         <button class="google-btn" onclick="connectGmail()" style="margin-top:6px">
@@ -4084,10 +4084,15 @@ async function saveSettings(){cfg.senderName=document.getElementById('cfg-name')
 function loadSettings(){if(cfg.senderName)document.getElementById('cfg-name').value=cfg.senderName;if(cfg.senderTitle)document.getElementById('cfg-title').value=cfg.senderTitle;if(cfg.senderCompany)document.getElementById('cfg-company').value=cfg.senderCompany;if(cfg.bookingLink)document.getElementById('cfg-booking').value=cfg.bookingLink;if(cfg.delay2)document.getElementById('cfg-d2').value=cfg.delay2;if(cfg.delay3)document.getElementById('cfg-d3').value=cfg.delay3;if(cfg.dailyLimit)document.getElementById('cfg-limit').value=cfg.dailyLimit;if(cfg.lockTimeout)document.getElementById('cfg-lock-timeout').value=cfg.lockTimeout;if(cfg.addendum)document.getElementById('cfg-addendum').value=cfg.addendum;}
 function loadIntegrationUI(){
   updateStatusPills();
-  // Restore visible key indicators (not values — security)
-  if(encKeys.gmailClientId && document.getElementById('key-gmail-client-id')){
-    document.getElementById('key-gmail-client-id').placeholder = '●●●● (saved)';
+  updateGmailStatus();
+  // Restore visible key indicators
+  if(encKeys.gmailClientId) {
+    const el = document.getElementById('key-gmail-client-id');
+    if (el) el.placeholder = '●●●● (saved)';
   }
+  // Gmail card always visible
+  const gmailCard = document.getElementById('gmail-int-card');
+  if (gmailCard) gmailCard.style.display = '';
 }
 
 // ═══════════════════════════════════════════════════
