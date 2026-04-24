@@ -3242,20 +3242,21 @@ async function researchContact(id) {
     'gemini-1.5-flash',
   ];
 
-  const prompt = `You are a B2B sales research assistant. Research this company for outreach.
+  const prompt = `You are a B2B sales research assistant for LeadStrong.ai and HireAway. Research this company for B2B outreach.
 
-Company: ${c.company || 'Unknown'}
-Contact: ${c.name}${c.title ? ', ' + c.title : ''}
-Industry: ${c.industry || 'Unknown'}
+COMPANY: ${c.company || 'Unknown'}
+CONTACT: ${c.name}${c.title ? ', ' + c.title : ''}
+INDUSTRY: ${c.industry || 'Unknown'}
 
-Provide in 150 words max:
-1. What they do / core business
-2. Recent news or growth signals (if any)  
-3. Likely pain points (hiring OR lead generation)
-4. Recommended angle: HireAway (staffing/recruitment) or LeadStrong.ai (lead gen automation) or BOTH?
-5. One specific personalisation hook for an outreach email
+You MUST respond in EXACTLY this numbered format (one sentence per point, max 200 words total):
 
-Be specific and concise. No bullet headers needed — just numbered points.`;
+1. CORE BUSINESS: [What this company does and who they serve]
+2. GROWTH SIGNALS: [Any recent growth, hiring surge, expansion, funding, or news — or "No signals found" if none]
+3. PAIN POINTS: [Their most likely challenge around hiring talent OR generating leads/customers]
+4. SERVICE RECOMMENDATION: [HIREAWAY if staffing/hiring fit, LEADSTRONG if lead gen fit, BOTH if dual fit — explain why in one sentence]
+5. OUTREACH HOOK: [One specific, personalised opening line referencing something real about ${c.company || 'this company'} — do NOT be generic]
+
+Be specific. Use real facts. Never say "I don't have information" — make educated inferences from the company name, industry, and contact title.`;
 
   let lastError = '';
 
@@ -6771,21 +6772,44 @@ function renderIntelCards() {
     const score    = readinessScore(c);
     const research = c.geminiResearch || '';
 
-    // Parse research into numbered points
-    const lines = research.split('\n').map(l => l.trim()).filter(l => l.length > 10);
-    const getPoint = (nums) => {
-      for (const n of nums) {
-        const line = lines.find(l => /^\d+[\.\)]/.test(l) && l.startsWith(n.toString()));
-        if (line) return line.replace(/^\d+[\.\)]\s*/, '').trim();
-      }
-      return null;
+    // Smart research parser — handles numbered, bulleted, or free-form text
+    const parseResearch = (text) => {
+      if (!text || text.trim() === '') return { coreBusiness:'—', growthSignals:'—', painPoints:'—', recommendation:'—', hook:'—' };
+      
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 5);
+      
+      // Try numbered format: "1. ...", "1) ..."
+      const getNumbered = (n) => {
+        const line = lines.find(l => new RegExp('^' + n + '[\\.):]').test(l));
+        if (line) return line.replace(/^\d+[\.\):]\s*/, '').trim();
+        return null;
+      };
+
+      // Try keyword format
+      const getKeyword = (...keywords) => {
+        for (const kw of keywords) {
+          const line = lines.find(l => l.toLowerCase().includes(kw.toLowerCase()) && l.includes(':'));
+          if (line) {
+            const after = line.split(':').slice(1).join(':').trim();
+            if (after.length > 5) return after;
+          }
+        }
+        return null;
+      };
+
+      // Get sentences by position as ultimate fallback
+      const sentences = text.replace(/\d+[\.\)]\s*/g, '').split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 20);
+
+      return {
+        coreBusiness:  getNumbered(1) || getKeyword('core business','what they do','company','business') || sentences[0] || lines[0] || '—',
+        growthSignals: getNumbered(2) || getKeyword('growth','news','signals','recent') || sentences[1] || '—',
+        painPoints:    getNumbered(3) || getKeyword('pain','challenge','problem','need','hiring','lead gen') || sentences[2] || '—',
+        recommendation:getNumbered(4) || getKeyword('recommend','angle','hireaway','leadstrong','both','service') || sentences[3] || '—',
+        hook:          getNumbered(5) || getKeyword('hook','personaliz','outreach','open with') || sentences[sentences.length-1] || '—',
+      };
     };
 
-    const coreBusiness  = getPoint([1]) || lines[0] || '—';
-    const growthSignals = getPoint([2]) || '—';
-    const painPoints    = getPoint([3]) || '—';
-    const recommendation= getPoint([4]) || '—';
-    const hook          = getPoint([5]) || getPoint([4]) || '—';
+    const { coreBusiness, growthSignals, painPoints, recommendation, hook } = parseResearch(research);
 
     const scoreColor = score >= 80 ? '#00bfa6' : score >= 50 ? '#f0c040' : '#e05555';
     const scoreLabel = score >= 80 ? 'Ready' : score >= 50 ? 'In Progress' : 'Needs Work';
@@ -6838,6 +6862,18 @@ function renderIntelCards() {
         <div style="padding:12px 18px;border-bottom:1px solid var(--border)">
           <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#f0c040;margin-bottom:6px">✉ Outreach Hook</div>
           <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6;font-style:italic">"${hook}"</div>
+        </div>
+
+        <!-- FULL RESEARCH TOGGLE -->
+        <div style="padding:10px 18px;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.15)">
+          <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"
+            onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.toggle-icon').textContent=this.nextElementSibling.style.display==='none'?'▶':'▼'">
+            <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim)">
+              📄 Full Gemini Research
+            </div>
+            <span class="toggle-icon" style="font-size:9px;color:var(--text-dim)">▶</span>
+          </div>
+          <div style="display:none;margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.8;white-space:pre-wrap;border-left:2px solid var(--border);padding-left:10px">${research}</div>
         </div>
 
         ${c.personalization ? `
