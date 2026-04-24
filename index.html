@@ -7,9 +7,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="4.0">
+<meta name="version" content="5.0">
 <meta name="referrer" content="no-referrer">
-<title>LeadStrong.ai CRM v4.0</title>
+<title>LeadStrong.ai CRM v5.0</title>
 <link rel="canonical" href="https://eranhireaway.github.io/LeadStrong.ai-CRM/">
 <meta property="og:url" content="https://eranhireaway.github.io/LeadStrong.ai-CRM/">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -7128,6 +7128,19 @@ function fmt(n)  { return '$' + Number(n).toLocaleString('en-US', {minimumFracti
 function fmtD(n) { return '$' + Number(n).toFixed(2); }
 function pct(a,b){ return b ? Math.round(a/b*100) : 0; }
 
+let pnlView = 'monthly';
+
+function setPnlView(view) {
+  pnlView = view;
+  const mBtn = document.getElementById('pnl-toggle-monthly');
+  const aBtn = document.getElementById('pnl-toggle-annual');
+  if (mBtn) { mBtn.style.background = view==='monthly'?'#00bfa6':'var(--surface3)'; mBtn.style.color = view==='monthly'?'#fff':'var(--text-muted)'; }
+  if (aBtn) { aBtn.style.background = view==='annual'?'#f0c040':'var(--surface3)'; aBtn.style.color = view==='annual'?'#1a1a1a':'var(--text-muted)'; }
+  const sub = document.getElementById('pnl-view-sub');
+  if (sub) sub.textContent = view==='monthly' ? 'Monthly financial model — revenue, costs, and profitability' : 'Annual projection — all figures × 12';
+  renderPnl();
+}
+
 function renderPnl() {
   const p       = getPnl();
   const clients = getClients();
@@ -7142,6 +7155,9 @@ function renderPnl() {
 
 // ── KPI STRIP ──
 function renderPnlKpis(p, clients) {
+  const mult = pnlView === 'annual' ? 12 : 1;
+  const pLabel = pnlView === 'annual' ? '/yr' : '/mo';
+  const fmtP = v => fmt(v * mult);
   const totalRevenue  = clients.reduce((a,c) => a + Number(c.revenue||0) + Number(c.addonRev||0), 0);
   const totalToolCost = Object.values(p.tools).reduce((a,t) => a + Number(t.cost||0), 0);
   const totalLabour   = Object.values(p.labour).reduce((a,l) => a + Number(l.cost||0), 0);
@@ -7268,6 +7284,9 @@ function renderTierMargins(p, clients) {
 
 // ── TOOL COSTS ──
 function renderToolCosts(p) {
+  const mult = pnlView === 'annual' ? 12 : 1;
+  const pLabel = pnlView === 'annual' ? '/yr' : '/mo';
+  const fmtP = v => fmt(v * mult);
   const totalTools  = Object.values(p.tools).reduce((a,t)=>a+Number(t.cost||0),0);
   const totalLabour = Object.values(p.labour).reduce((a,l)=>a+Number(l.cost||0),0);
 
@@ -7295,7 +7314,8 @@ function renderToolCosts(p) {
             <input type="number" value="${t.cost}" min="0" data-key="tools.${k}"
               style="width:70px;padding:4px 7px;font-size:11px;text-align:right;background:var(--surface2)"
               onchange="updatePnlCost('tools','${k}',this.value)">
-            <span style="font-family:var(--mono);font-size:9px;color:var(--text-dim);white-space:nowrap">/mo equiv.</span>
+            <span style="font-family:var(--mono);font-size:9px;color:var(--text-dim);white-space:nowrap">/ mo</span>
+            ${pnlView==='annual'?`<span style="font-family:var(--mono);font-size:9px;color:var(--accent4);min-width:55px;text-align:right">${fmt(t.cost*12)}/yr</span>`:''}
           </div>
         </div>`;
       }).join('')}
