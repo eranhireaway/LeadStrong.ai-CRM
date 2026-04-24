@@ -791,6 +791,11 @@ textarea{resize:vertical;min-height:80px;}
   </div>
 
   <!-- FILTER BAR -->
+  <div style="margin-bottom:12px;padding:10px 14px;background:rgba(0,191,166,0.05);border:1px solid rgba(0,191,166,0.15);border-radius:8px;font-family:var(--mono);font-size:11px;color:var(--text-muted);display:flex;align-items:center;justify-content:space-between" id="intel-quality-banner">
+    <span>💡 For best results, run Gemini research on all contacts then click Refresh. Research uses the new structured prompt for clear insights.</span>
+    <button class="btn btn-gold btn-sm" onclick="reResearchPoorQuality()" style="flex-shrink:0;margin-left:12px">🔄 Fix Poor Research</button>
+  </div>
+
   <div class="toolbar" style="margin-bottom:16px">
     <select class="filter-select" onchange="renderIntelCards()" id="intel-filter-service">
       <option value="">All Services</option>
@@ -6817,6 +6822,14 @@ function renderIntelCards() {
     return `
       <div class="card" style="border:1px solid ${sc.border};border-top:3px solid ${sc.color};padding:0;overflow:hidden;display:flex;flex-direction:column">
 
+        <!-- RESEARCH QUALITY CHECK -->
+        ${(research.length < 100 || research.includes("Here's your") && research.length < 150) ? `
+        <div style="padding:10px 14px;background:rgba(224,85,85,0.08);border-bottom:1px solid rgba(224,85,85,0.2);font-family:var(--mono);font-size:10px;color:#ff7070;display:flex;align-items:center;gap:8px">
+          <span>⚠</span>
+          <span>Research incomplete — Gemini returned a poor response. Click the 🔄 button to re-research this contact.</span>
+          <button class="btn btn-danger btn-sm" style="margin-left:auto;flex-shrink:0" onclick="event.stopPropagation();researchContact('${c.id}').then(()=>{setTimeout(renderIntelligence,1500)})">🔄 Re-research</button>
+        </div>` : ''}
+
         <!-- CARD HEADER -->
         <div style="padding:16px 18px;background:${sc.bg};border-bottom:1px solid ${sc.border};display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
           <div style="flex:1;min-width:0">
@@ -6883,6 +6896,13 @@ function renderIntelCards() {
           <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6;white-space:pre-wrap">${c.personalization.slice(0,200)}${c.personalization.length>200?'...':''}</div>
         </div>` : ''}
 
+        <!-- RESEARCH META -->
+        <div style="padding:8px 18px;border-top:1px solid var(--border);font-family:var(--mono);font-size:9px;color:var(--text-dim);display:flex;gap:12px">
+          <span>📝 ${research.split(' ').filter(w=>w.length>2).length} words researched</span>
+          ${c.geminiModel ? `<span>🤖 ${c.geminiModel}</span>` : ''}
+          ${c.geminiResearch ? `<span>🕐 ${new Date(c.updatedAt||c.createdAt||Date.now()).toLocaleDateString()}</span>` : ''}
+        </div>
+
         <!-- READINESS BAR + ACTIONS -->
         <div style="padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto">
           <div style="flex:1">
@@ -6906,6 +6926,31 @@ function renderIntelCards() {
         </div>
       </div>`;
   }).join('');
+}
+
+async function reResearchPoorQuality() {
+  // Find contacts with poor quality research (too short or generic response)
+  const poorQuality = contacts.filter(c => {
+    if (!c.geminiResearch) return false;
+    const r = c.geminiResearch;
+    return r.length < 150 || (r.includes("Here's your") && r.length < 200) || !r.includes('1.');
+  });
+
+  if (!poorQuality.length) {
+    toast('All research looks good quality!', 'success');
+    return;
+  }
+
+  if (!confirm(`Re-research ${poorQuality.length} contacts with poor quality research?`)) return;
+
+  toast(`Re-researching ${poorQuality.length} contacts...`, 'info');
+  for (const c of poorQuality) {
+    c.geminiResearch = null; // clear old research
+    await researchContact(c.id);
+    await delay(1500);
+  }
+  renderIntelligence();
+  toast(`Re-research complete for ${poorQuality.length} contacts`, 'success');
 }
 
 function exportIntelReport() {
