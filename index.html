@@ -3239,108 +3239,139 @@ async function researchContact(id) {
 
   toast('Researching ' + (c.company || c.name) + '...', 'info');
 
-  // Try models in order — flash is current, pro is fallback
+  // Models that support Google Search grounding (web browsing)
   const models = [
     'gemini-2.5-flash',
     'gemini-2.0-flash',
-    'gemini-2.5-pro',
     'gemini-1.5-flash',
   ];
 
-  const prompt = `You are a B2B sales research assistant for LeadStrong.ai and HireAway. Research this company for B2B outreach.
+  // Your exact research prompt — instructs Gemini to search the web
+  const prompt = `You are a B2B research analyst helping prepare personalized outreach emails for two services:
 
-COMPANY: ${c.company || 'Unknown'}
+**LeadStrong.ai** — An AI-powered lead generation platform that builds targeted prospect lists, runs personalized email and LinkedIn outreach campaigns, and helps businesses get in front of qualified clients at scale. Packages are tailored to each client's budget and goals.
+
+**HireAway** — An AI-powered staffing and recruitment platform that helps businesses find, hire, and manage top talent faster, reducing time-to-hire and recruitment costs.
+
+Search the web for the company below. Visit their website, read their About Us and homepage, understand what they do and who their customers are.
+
 CONTACT: ${c.name}${c.title ? ', ' + c.title : ''}
+COMPANY: ${c.company || 'Unknown'}
 INDUSTRY: ${c.industry || 'Unknown'}
 
-You MUST respond in EXACTLY this numbered format (one sentence per point, max 200 words total):
+Respond in EXACTLY this format — no introduction, no extra text:
 
-1. CORE BUSINESS: [What this company does and who they serve]
-2. GROWTH SIGNALS: [Any recent growth, hiring surge, expansion, funding, or news — or "No signals found" if none]
-3. PAIN POINTS: [Their most likely challenge around hiring talent OR generating leads/customers]
-4. SERVICE RECOMMENDATION: [HIREAWAY if staffing/hiring fit, LEADSTRONG if lead gen fit, BOTH if dual fit — explain why in one sentence]
-5. OUTREACH HOOK: [One specific, personalised opening line referencing something real about ${c.company || 'this company'} — do NOT be generic]
+WHAT THEY DO: [1-2 sentences — what the company does and who their specific customers are. Be precise.]
 
-Be specific. Use real facts. Never say "I don't have information" — make educated inferences from the company name, industry, and contact title.`;
+LEADSTRONG PAIN POINT: [1-2 sentences — what specific challenge does this company face when trying to attract new clients or grow their sales pipeline? Reference their actual industry and customer type. If not applicable write N/A.]
+
+HIREAWAY PAIN POINT: [1-2 sentences — what specific challenge does this company face when hiring or managing staff? Reference their actual industry. If not applicable write N/A.]
+
+WEBSITE DETAIL: [One specific phrase, tagline, or unique detail found on their website — quote it directly if possible. If not found, write your best inference labeled "Inferred:"]
+
+SERVICE FIT: [Write exactly one of: LEADSTRONG ONLY / HIREAWAY ONLY / BOTH]
+
+OUTREACH HOOK: [One specific, personalised opening sentence referencing something real and specific about ${c.company} — do NOT be generic]
+
+RULES:
+- Be specific — always name their industry, their specific customer type, and their specific challenge
+- Never write generic phrases like "reaching new clients" or "growing their business"
+- If you cannot find their website, make educated inferences based on their company name and industry, labeled "Inferred:"`;
 
   let lastError = '';
 
   for (const model of models) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+      
+      // Enable Google Search grounding so Gemini can browse the web
+      const body = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 600, temperature: 0.4 },
+        tools: [{ googleSearch: {} }]  // ← enables web search
+      };
+
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 400, temperature: 0.7 }
-        })
+        body: JSON.stringify(body)
       });
 
       const data = await res.json();
 
-      // Surface API errors properly — Gemini returns errors as JSON with 200 status
       if (data.error) {
         lastError = `[${model}] ${data.error.code}: ${data.error.message}`;
+        // If grounding not supported on this model, try without it
+        if (data.error.message.includes('tool') || data.error.code === 400) {
+          const res2 = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...body, tools: undefined })
+          });
+          const data2 = await res2.json();
+          if (!data2.error && data2.candidates?.[0]?.content?.parts?.[0]?.text) {
+            const text2 = data2.candidates[0].content.parts[0].text;
+            c.geminiResearch = text2;
+            c.geminiModel    = model + '-no-grounding';
+            c.updatedAt      = new Date().toISOString();
+            await saveEncryptedData();
+            addAudit('api', `Gemini research (no grounding): ${c.company}`, 'info');
+            toast('Research complete for ' + (c.company || c.name), 'success');
+            if (document.getElementById('contact-modal').classList.contains('open')) openContact(id);
+            return;
+          }
+        }
         console.warn('Gemini error:', lastError);
-        continue; // try next model
+        continue;
       }
 
-      // Check for safety blocks or empty candidates
       if (!data.candidates || data.candidates.length === 0) {
-        const blockReason = data.promptFeedback?.blockReason || 'No candidates returned';
-        lastError = `[${model}] Blocked: ${blockReason}`;
+        lastError = `[${model}] No candidates`;
         continue;
       }
 
-      const finishReason = data.candidates[0]?.finishReason;
-      if (finishReason === 'SAFETY') {
-        lastError = `[${model}] Blocked by safety filter`;
-        continue;
-      }
+      // Extract text from response (grounded responses may have multiple parts)
+      const text = data.candidates[0]?.content?.parts
+        ?.map(p => p.text || '')
+        .join('\n')
+        .trim();
 
-      const text = data.candidates[0]?.content?.parts?.[0]?.text;
-      if (!text) { lastError = `[${model}] Empty response`; continue; }
+      if (!text || text.length < 50) { lastError = `[${model}] Empty response`; continue; }
 
-      // Success
-      c.geminiResearch = text;
-      c.geminiModel    = model;
+      // Check if grounding was used (sources returned)
+      const groundingMeta = data.candidates[0]?.groundingMetadata;
+      const searchUsed = groundingMeta?.webSearchQueries?.length > 0;
+
+      c.geminiResearch   = text;
+      c.geminiModel      = model;
+      c.geminiGrounded   = searchUsed; // did it actually search the web?
+      c.geminiSources    = groundingMeta?.groundingChunks?.map(ch => ch.web?.uri).filter(Boolean) || [];
+      c.updatedAt        = new Date().toISOString();
+
       await saveEncryptedData();
-      addAudit('api', `Gemini research: ${c.company || c.name} (${model})`, 'info');
-      toast('Research complete for ' + (c.company || c.name), 'success');
+      addAudit('api', `Gemini research${searchUsed?' (web grounded)':''}: ${c.company} (${model})`, 'info');
+      toast(`Research complete for ${c.company || c.name}${searchUsed?' 🌐':' 🤖'}`, 'success');
       if (document.getElementById('contact-modal').classList.contains('open')) openContact(id);
-      return; // done
+      return;
 
     } catch(e) {
-      // Network / CORS error
       lastError = `[${model}] ${e.message}`;
-      if (e.message.includes('CORS') || e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
-        // CORS won't be fixed by trying other models — break and show helpful message
+      if (e.message.includes('Failed to fetch') || e.message.includes('CORS')) {
         toast('Network error — make sure you are on https://eranhireaway.github.io/LeadStrong.ai-CRM/', 'error', 6000);
-        addAudit('api', `Gemini CORS error: ${e.message}`, 'danger');
-        showGeminiCorsHelp();
         return;
       }
       continue;
     }
   }
 
-  // All models failed
-  console.error('All Gemini models failed. Last error:', lastError);
-  
-  // Parse the error to give a clearer message
+  console.error('All Gemini models failed:', lastError);
   let userMsg = 'Gemini failed: ' + lastError;
   if (lastError.includes('API_KEY_INVALID') || lastError.includes('400')) {
-    userMsg = 'Invalid Gemini API key — go to Integrations and re-enter your key from aistudio.google.com';
-  } else if (lastError.includes('QUOTA') || lastError.includes('429')) {
-    userMsg = 'Gemini quota exceeded — wait a moment and try again, or upgrade your API plan';
-  } else if (lastError.includes('404')) {
-    userMsg = 'Gemini model not found — your API key may not have access to these models. Try regenerating your key at aistudio.google.com';
-  } else if (lastError.includes('403')) {
-    userMsg = 'Gemini access denied — make sure Generative Language API is enabled in Google Cloud Console';
+    userMsg = 'Invalid Gemini API key — re-enter your key in Integrations';
+  } else if (lastError.includes('429')) {
+    userMsg = 'Gemini quota exceeded — wait a moment and try again';
   }
-  
-  toast(userMsg, 'error', 10000);
+  toast(userMsg, 'error', 8000);
   addAudit('api', `Gemini failed: ${lastError}`, 'danger');
 }
 
@@ -6777,44 +6808,61 @@ function renderIntelCards() {
     const score    = readinessScore(c);
     const research = c.geminiResearch || '';
 
-    // Smart research parser — handles numbered, bulleted, or free-form text
+    // Smart parser — handles your exact prompt format (FIELD: value) and numbered formats
     const parseResearch = (text) => {
-      if (!text || text.trim() === '') return { coreBusiness:'—', growthSignals:'—', painPoints:'—', recommendation:'—', hook:'—' };
+      if (!text || text.trim() === '') return { coreBusiness:'—', growthSignals:'—', painPoints:'—', recommendation:'—', hook:'—', websiteDetail:'—' };
       
-      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 5);
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 3);
       
-      // Try numbered format: "1. ...", "1) ..."
-      const getNumbered = (n) => {
-        const line = lines.find(l => new RegExp('^' + n + '[\\.):]').test(l));
-        if (line) return line.replace(/^\d+[\.\):]\s*/, '').trim();
-        return null;
-      };
-
-      // Try keyword format
-      const getKeyword = (...keywords) => {
-        for (const kw of keywords) {
-          const line = lines.find(l => l.toLowerCase().includes(kw.toLowerCase()) && l.includes(':'));
+      // Extract by label (your prompt format: "WHAT THEY DO: ...")
+      const getLabel = (...labels) => {
+        for (const label of labels) {
+          const line = lines.find(l => l.toUpperCase().startsWith(label.toUpperCase() + ':'));
           if (line) {
-            const after = line.split(':').slice(1).join(':').trim();
-            if (after.length > 5) return after;
+            const val = line.slice(label.length + 1).trim();
+            if (val.length > 5 && val !== 'N/A') return val;
           }
+          // Multi-line: label on one line, content on next
+          const idx = lines.findIndex(l => l.toUpperCase().trim() === label.toUpperCase() + ':');
+          if (idx >= 0 && lines[idx+1]) return lines[idx+1].trim();
         }
         return null;
       };
 
-      // Get sentences by position as ultimate fallback
-      const sentences = text.replace(/\d+[\.\)]\s*/g, '').split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 20);
-
-      return {
-        coreBusiness:  getNumbered(1) || getKeyword('core business','what they do','company','business') || sentences[0] || lines[0] || '—',
-        growthSignals: getNumbered(2) || getKeyword('growth','news','signals','recent') || sentences[1] || '—',
-        painPoints:    getNumbered(3) || getKeyword('pain','challenge','problem','need','hiring','lead gen') || sentences[2] || '—',
-        recommendation:getNumbered(4) || getKeyword('recommend','angle','hireaway','leadstrong','both','service') || sentences[3] || '—',
-        hook:          getNumbered(5) || getKeyword('hook','personaliz','outreach','open with') || sentences[sentences.length-1] || '—',
+      // Numbered format fallback: "1. ..."
+      const getNumbered = (n) => {
+        const line = lines.find(l => new RegExp('^' + n + '[\\.):]').test(l));
+        return line ? line.replace(/^\d+[\.\):]\s*/, '').trim() : null;
       };
+
+      // Keyword search fallback
+      const getKeyword = (...kws) => {
+        for (const kw of kws) {
+          const line = lines.find(l => l.toLowerCase().includes(kw) && l.includes(':'));
+          if (line) { const v = line.split(':').slice(1).join(':').trim(); if (v.length > 5) return v; }
+        }
+        return null;
+      };
+
+      const sentences = text.split(/[.!?]+/).map(s => s.replace(/^[\d\.\):\s]+/, '').trim()).filter(s => s.length > 20);
+
+      const coreBusiness   = getLabel('WHAT THEY DO','CORE BUSINESS','BUSINESS') || getNumbered(1) || getKeyword('what they do','core business') || sentences[0] || '—';
+      const lsPainPoint    = getLabel('LEADSTRONG PAIN POINT','LEADSTRONG') || getNumbered(2) || getKeyword('leadstrong','lead gen','pipeline','outreach') || sentences[1] || '—';
+      const haPainPoint    = getLabel('HIREAWAY PAIN POINT','HIREAWAY') || getNumbered(3) || getKeyword('hireaway','hiring','staffing','recruitment','talent') || sentences[2] || '—';
+      const websiteDetail  = getLabel('WEBSITE DETAIL') || getKeyword('tagline','detail','found on') || '—';
+      const serviceFit     = getLabel('SERVICE FIT') || getKeyword('service fit','recommend') || getNumbered(4) || '—';
+      const hook           = getLabel('OUTREACH HOOK','HOOK','PERSONALIZ') || getNumbered(5) || getKeyword('hook','outreach','open with','personaliz') || sentences[sentences.length-1] || '—';
+
+      // Combine pain points into painPoints field
+      const painPoints = [
+        lsPainPoint !== '—' ? `LeadStrong: ${lsPainPoint}` : '',
+        haPainPoint !== '—' ? `HireAway: ${haPainPoint}` : '',
+      ].filter(Boolean).join('\n') || '—';
+
+      return { coreBusiness, growthSignals: websiteDetail, painPoints, recommendation: serviceFit, hook, websiteDetail };
     };
 
-    const { coreBusiness, growthSignals, painPoints, recommendation, hook } = parseResearch(research);
+    const { coreBusiness, growthSignals, painPoints, recommendation, hook, websiteDetail } = parseResearch(research);
 
     const scoreColor = score >= 80 ? '#00bfa6' : score >= 50 ? '#f0c040' : '#e05555';
     const scoreLabel = score >= 80 ? 'Ready' : score >= 50 ? 'In Progress' : 'Needs Work';
@@ -6860,7 +6908,7 @@ function renderIntelCards() {
             <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6">${painPoints}</div>
           </div>
           <div style="padding:12px 14px">
-            <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#00bfa6;margin-bottom:6px">📈 Growth Signals</div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#00bfa6;margin-bottom:6px">🌐 Website Detail</div>
             <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6">${growthSignals}</div>
           </div>
         </div>
@@ -6897,10 +6945,12 @@ function renderIntelCards() {
         </div>` : ''}
 
         <!-- RESEARCH META -->
-        <div style="padding:8px 18px;border-top:1px solid var(--border);font-family:var(--mono);font-size:9px;color:var(--text-dim);display:flex;gap:12px">
-          <span>📝 ${research.split(' ').filter(w=>w.length>2).length} words researched</span>
-          ${c.geminiModel ? `<span>🤖 ${c.geminiModel}</span>` : ''}
+        <div style="padding:8px 18px;border-top:1px solid var(--border);font-family:var(--mono);font-size:9px;color:var(--text-dim);display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+          <span>${c.geminiGrounded ? '🌐 Web researched' : '🤖 AI inferred'}</span>
+          <span>📝 ${research.split(' ').filter(w=>w.length>2).length} words</span>
+          ${c.geminiModel ? `<span>⚡ ${c.geminiModel}</span>` : ''}
           ${c.geminiResearch ? `<span>🕐 ${new Date(c.updatedAt||c.createdAt||Date.now()).toLocaleDateString()}</span>` : ''}
+          ${c.geminiSources?.length ? `<span style="color:#00bfa6">🔗 ${c.geminiSources.length} source${c.geminiSources.length!==1?'s':''}</span>` : ''}
         </div>
 
         <!-- READINESS BAR + ACTIONS -->
