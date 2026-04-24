@@ -692,6 +692,7 @@ textarea{resize:vertical;min-height:80px;}
 <nav class="sidebar">
   <div class="sidebar-label">Main</div>
   <div class="nav-item active" data-view="dashboard" onclick="showView('dashboard')"><span>📊</span>Dashboard <span class="nav-badge" id="nb-dash">—</span></div>
+  <div class="nav-item" data-view="intelligence" onclick="showView('intelligence')"><span>🧬</span>Intelligence <span class="nav-badge" id="nb-intel">—</span></div>
   <div class="nav-item" data-view="pnl" onclick="showView('pnl')"><span>💰</span>P&amp;L Analysis</div>
   <div class="nav-item" data-view="contacts" onclick="showView('contacts')"><span>👥</span>Contacts <span class="nav-badge" id="nb-contacts">0</span></div>
   <div class="nav-item" data-view="pipeline" onclick="showView('pipeline')"><span>🔀</span>Pipeline <span class="nav-badge" id="nb-pipeline">0</span></div>
@@ -739,6 +740,79 @@ textarea{resize:vertical;min-height:80px;}
       <div class="seq-step"><div class="seq-step-left"><div class="seq-dot" style="background:rgba(0,191,166,0.15);color:#00BFA6">3</div></div><div class="seq-step-content"><div class="seq-step-title">Touch 3 — Booking CTA</div><div class="seq-step-meta">Day 9–10 · Calendar link included</div><div class="progress-bar"><div class="progress-fill" id="prog3" style="width:0%;background:var(--accent3)"></div></div><div class="metric-sub" id="prog3-l" style="margin-top:3px">0 sent</div></div></div>
     </div>
   </div>
+</div>
+
+<!-- ── BUSINESS INTELLIGENCE ── -->
+<div class="view" id="view-intelligence">
+  <div class="page-header">
+    <div>
+      <div class="page-title">🧬 Business Intelligence</div>
+      <div class="page-sub">AI-powered research insights — service fit analysis, pain points, and outreach intelligence</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary btn-sm" onclick="renderIntelligence()">↺ Refresh</button>
+      <button class="btn btn-gold btn-sm" onclick="exportIntelReport()">⬇ Export Report</button>
+      <button class="btn btn-primary" onclick="showView('contacts');setTimeout(()=>researchAll(),200)">🧠 Research All Contacts</button>
+    </div>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px" id="intel-kpis"></div>
+
+  <!-- SERVICE FIT SPLIT -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px">
+    <div class="card" style="border-top:3px solid #00bfa6;text-align:center;padding:24px">
+      <div style="font-size:36px;margin-bottom:8px">🎯</div>
+      <div style="font-size:28px;font-weight:800;color:#00bfa6" id="intel-leadstrong-count">0</div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">LeadStrong.ai</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted)">Lead gen automation fit</div>
+      <div class="progress-bar" style="height:6px;margin-top:12px">
+        <div class="progress-fill" id="intel-leadstrong-bar" style="background:#00bfa6;width:0%"></div>
+      </div>
+    </div>
+    <div class="card" style="border-top:3px solid #f0c040;text-align:center;padding:24px">
+      <div style="font-size:36px;margin-bottom:8px">🏢</div>
+      <div style="font-size:28px;font-weight:800;color:#f0c040" id="intel-hireaway-count">0</div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">HireAway</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted)">Staffing & recruitment fit</div>
+      <div class="progress-bar" style="height:6px;margin-top:12px">
+        <div class="progress-fill" id="intel-hireaway-bar" style="background:#f0c040;width:0%"></div>
+      </div>
+    </div>
+    <div class="card" style="border-top:3px solid #7ec8c8;text-align:center;padding:24px">
+      <div style="font-size:36px;margin-bottom:8px">⚡</div>
+      <div style="font-size:28px;font-weight:800;color:#7ec8c8" id="intel-both-count">0</div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">Both Services</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted)">Dual opportunity</div>
+      <div class="progress-bar" style="height:6px;margin-top:12px">
+        <div class="progress-fill" id="intel-both-bar" style="background:#7ec8c8;width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="toolbar" style="margin-bottom:16px">
+    <select class="filter-select" onchange="renderIntelCards()" id="intel-filter-service">
+      <option value="">All Services</option>
+      <option value="LEADSTRONG">LeadStrong.ai only</option>
+      <option value="HIREAWAY">HireAway only</option>
+      <option value="BOTH">Both Services</option>
+    </select>
+    <select class="filter-select" onchange="renderIntelCards()" id="intel-filter-show">
+      <option value="">All Shows</option>
+    </select>
+    <input class="search-box" placeholder="Search company or insight..." id="intel-search"
+      oninput="renderIntelCards()" style="min-width:220px">
+    <select class="filter-select" onchange="renderIntelCards()" id="intel-sort">
+      <option value="name">Sort: Name</option>
+      <option value="service">Sort: Service</option>
+      <option value="score">Sort: Readiness</option>
+    </select>
+    <span id="intel-count-label" style="font-family:var(--mono);font-size:11px;color:var(--text-muted);white-space:nowrap"></span>
+  </div>
+
+  <!-- INTEL CARDS GRID -->
+  <div id="intel-cards-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px"></div>
 </div>
 
 <!-- ── P&L ANALYSIS ── -->
@@ -2930,6 +3004,7 @@ function showView(id) {
   if(id==='audit') renderAudit();
   if(id==='security') renderSecurityView();
   if(id==='pnl') renderPnl();
+  if(id==='intelligence') loadIntelligenceView();
   if(id==='shows') renderShows();
   if(id==='qa-agent') loadQaView();
   if(id==='self-heal') loadHealView();
@@ -6504,6 +6579,332 @@ async function testGeminiKey() {
     }
   }
   toast('❌ All Gemini models failed — check your API key and try again', 'error', 8000);
+}
+
+
+// ═══════════════════════════════════════════════════
+//  BUSINESS INTELLIGENCE ENGINE
+// ═══════════════════════════════════════════════════
+
+function loadIntelligenceView() {
+  renderIntelligence();
+}
+
+function renderIntelligence() {
+  const researched = contacts.filter(c => c.geminiResearch);
+  
+  // Update nav badge
+  const nb = document.getElementById('nb-intel');
+  if (nb) nb.textContent = researched.length > 0 ? researched.length : '—';
+
+  if (!researched.length) {
+    document.getElementById('intel-kpis').innerHTML = `
+      <div class="card" style="grid-column:1/-1;text-align:center;padding:40px">
+        <div style="font-size:40px;margin-bottom:12px">🧬</div>
+        <div style="font-weight:700;font-size:16px;margin-bottom:8px">No research data yet</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);margin-bottom:16px">
+          Run Gemini research on your contacts to build intelligence profiles
+        </div>
+        <button class="btn btn-primary" onclick="showView('contacts');setTimeout(()=>researchAll(),200)">
+          🧠 Start Research on All Contacts
+        </button>
+      </div>`;
+    document.getElementById('intel-cards-grid').innerHTML = '';
+    return;
+  }
+
+  // Parse service from research text
+  const parseService = (c) => {
+    if (c.service) return c.service.toUpperCase();
+    const r = (c.geminiResearch || '').toUpperCase();
+    const hasLS = r.includes('LEADSTRONG') || r.includes('LEAD GEN') || r.includes('LEAD GENERATION') || r.includes('OUTREACH') || r.includes('AUTOMATION');
+    const hasHA = r.includes('HIREAWAY') || r.includes('HIRING') || r.includes('STAFFING') || r.includes('RECRUITMENT') || r.includes('HIRE');
+    if (hasLS && hasHA) return 'BOTH';
+    if (hasHA) return 'HIREAWAY';
+    return 'LEADSTRONG';
+  };
+
+  // Extract key findings from research text
+  const parseFindings = (text) => {
+    if (!text) return { coreBusiness:'—', painPoints:'—', hook:'—', growthSignals:'—' };
+    const lines = text.split('\n').filter(l => l.trim());
+    const get = (nums) => {
+      for (const n of nums) {
+        const line = lines.find(l => l.trim().startsWith(n + '.') || l.trim().startsWith(n + ')'));
+        if (line) return line.replace(/^\d+[\.\)]\s*/, '').trim();
+      }
+      // Fallback: grab sentences
+      return text.split('.').find(s => s.trim().length > 20)?.trim() + '.' || '—';
+    };
+    return {
+      coreBusiness:  get([1]) || '—',
+      growthSignals: get([2]) || '—',
+      painPoints:    get([3]) || '—',
+      hook:          get([5]) || get([4]) || '—',
+    };
+  };
+
+  // Calculate readiness score (0-100)
+  const readinessScore = (c) => {
+    let score = 0;
+    if (c.geminiResearch) score += 30;
+    if (c.personalization) score += 25;
+    if (c.apolloEnriched) score += 20;
+    if (c.subject1) score += 10;
+    if (c.email1) score += 10;
+    if (c.pushedToInstantly) score += 5;
+    return score;
+  };
+
+  // Service counts
+  const lsCount    = researched.filter(c => parseService(c) === 'LEADSTRONG').length;
+  const haCount    = researched.filter(c => parseService(c) === 'HIREAWAY').length;
+  const bothCount  = researched.filter(c => parseService(c) === 'BOTH').length;
+  const total      = researched.length;
+
+  // Update service split
+  document.getElementById('intel-leadstrong-count').textContent = lsCount;
+  document.getElementById('intel-hireaway-count').textContent   = haCount;
+  document.getElementById('intel-both-count').textContent       = bothCount;
+  document.getElementById('intel-leadstrong-bar').style.width   = Math.round(lsCount/total*100) + '%';
+  document.getElementById('intel-hireaway-bar').style.width     = Math.round(haCount/total*100) + '%';
+  document.getElementById('intel-both-bar').style.width         = Math.round(bothCount/total*100) + '%';
+
+  // KPI strip
+  const avgReadiness = Math.round(researched.reduce((a,c) => a + readinessScore(c), 0) / researched.length);
+  const briefed      = researched.filter(c => c.personalization).length;
+  const highValue    = researched.filter(c => parseService(c) === 'BOTH').length;
+  const notResearched= contacts.length - researched.length;
+
+  document.getElementById('intel-kpis').innerHTML = [
+    { label:'Contacts Researched', value:total,            sub:`of ${contacts.length} total`,      color:'#00bfa6', icon:'🧬' },
+    { label:'Avg Readiness Score', value:avgReadiness+'%', sub:'research + brief + enrich',         color:'#7ec8c8', icon:'📊' },
+    { label:'Briefs Generated',    value:briefed,           sub:`${Math.round(briefed/total*100)}% of researched`, color:'#f0c040', icon:'✨' },
+    { label:'Dual Opportunity',    value:bothCount,         sub:'LeadStrong + HireAway fit',         color:'#00d4b8', icon:'⚡' },
+    { label:'Still Need Research', value:notResearched,     sub:'contacts pending',                  color:notResearched>0?'#e05555':'#00bfa6', icon:'⏳' },
+  ].map(k => `
+    <div class="metric-card" style="border-top:3px solid ${k.color}">
+      <div style="font-size:18px;margin-bottom:4px">${k.icon}</div>
+      <div class="metric-label">${k.label}</div>
+      <div class="metric-value" style="font-size:24px;color:${k.color}">${k.value}</div>
+      <div class="metric-sub">${k.sub}</div>
+    </div>`).join('');
+
+  // Populate show filter
+  const showSel = document.getElementById('intel-filter-show');
+  if (showSel) {
+    const shows = [...new Set(researched.map(c => c.showName||c.listTag).filter(Boolean))].sort();
+    const cur   = showSel.value;
+    showSel.innerHTML = '<option value="">All Shows</option>' +
+      shows.map(s => `<option value="${s}" ${s===cur?'selected':''}>${s}</option>`).join('');
+  }
+
+  renderIntelCards();
+}
+
+function renderIntelCards() {
+  const serviceFilter = document.getElementById('intel-filter-service')?.value || '';
+  const showFilter    = document.getElementById('intel-filter-show')?.value    || '';
+  const search        = (document.getElementById('intel-search')?.value || '').toLowerCase();
+  const sortBy        = document.getElementById('intel-sort')?.value || 'name';
+
+  const parseService = (c) => {
+    if (c.service) return c.service.toUpperCase();
+    const r = (c.geminiResearch || '').toUpperCase();
+    const hasLS = r.includes('LEADSTRONG') || r.includes('LEAD GEN') || r.includes('LEAD GENERATION') || r.includes('OUTREACH') || r.includes('AUTOMATION');
+    const hasHA = r.includes('HIREAWAY') || r.includes('HIRING') || r.includes('STAFFING') || r.includes('RECRUITMENT') || r.includes('HIRE');
+    if (hasLS && hasHA) return 'BOTH';
+    if (hasHA) return 'HIREAWAY';
+    return 'LEADSTRONG';
+  };
+
+  const readinessScore = (c) => {
+    let score = 0;
+    if (c.geminiResearch) score += 30;
+    if (c.personalization) score += 25;
+    if (c.apolloEnriched) score += 20;
+    if (c.subject1) score += 10;
+    if (c.email1) score += 10;
+    if (c.pushedToInstantly) score += 5;
+    return score;
+  };
+
+  let list = contacts.filter(c => c.geminiResearch);
+
+  if (serviceFilter) list = list.filter(c => parseService(c) === serviceFilter);
+  if (showFilter)    list = list.filter(c => (c.showName||c.listTag||'') === showFilter);
+  if (search)        list = list.filter(c =>
+    (c.name||'').toLowerCase().includes(search) ||
+    (c.company||'').toLowerCase().includes(search) ||
+    (c.geminiResearch||'').toLowerCase().includes(search)
+  );
+
+  // Sort
+  if (sortBy === 'name')    list.sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  if (sortBy === 'service') list.sort((a,b) => parseService(a).localeCompare(parseService(b)));
+  if (sortBy === 'score')   list.sort((a,b) => readinessScore(b) - readinessScore(a));
+
+  const countLabel = document.getElementById('intel-count-label');
+  if (countLabel) countLabel.textContent = `${list.length} profile${list.length!==1?'s':''}`;
+
+  const grid = document.getElementById('intel-cards-grid');
+  if (!grid) return;
+
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="empty-icon">🔍</div>
+      <div class="empty-title">No matches</div>
+      <div class="empty-sub">Try adjusting filters</div>
+    </div>`;
+    return;
+  }
+
+  const serviceConfig = {
+    'LEADSTRONG': { label:'LeadStrong.ai', color:'#00bfa6', bg:'rgba(0,191,166,0.08)', border:'rgba(0,191,166,0.25)', icon:'🎯', pitch:'Lead gen & outbound automation' },
+    'HIREAWAY':   { label:'HireAway',      color:'#f0c040', bg:'rgba(240,192,64,0.08)', border:'rgba(240,192,64,0.25)', icon:'🏢', pitch:'Staffing & recruitment services' },
+    'BOTH':       { label:'Both Services', color:'#7ec8c8', bg:'rgba(126,200,200,0.08)', border:'rgba(126,200,200,0.25)', icon:'⚡', pitch:'Full-stack growth partner' },
+  };
+
+  grid.innerHTML = list.map(c => {
+    const service  = parseService(c);
+    const sc       = serviceConfig[service] || serviceConfig['LEADSTRONG'];
+    const score    = readinessScore(c);
+    const research = c.geminiResearch || '';
+
+    // Parse research into numbered points
+    const lines = research.split('\n').map(l => l.trim()).filter(l => l.length > 10);
+    const getPoint = (nums) => {
+      for (const n of nums) {
+        const line = lines.find(l => /^\d+[\.\)]/.test(l) && l.startsWith(n.toString()));
+        if (line) return line.replace(/^\d+[\.\)]\s*/, '').trim();
+      }
+      return null;
+    };
+
+    const coreBusiness  = getPoint([1]) || lines[0] || '—';
+    const growthSignals = getPoint([2]) || '—';
+    const painPoints    = getPoint([3]) || '—';
+    const recommendation= getPoint([4]) || '—';
+    const hook          = getPoint([5]) || getPoint([4]) || '—';
+
+    const scoreColor = score >= 80 ? '#00bfa6' : score >= 50 ? '#f0c040' : '#e05555';
+    const scoreLabel = score >= 80 ? 'Ready' : score >= 50 ? 'In Progress' : 'Needs Work';
+
+    return `
+      <div class="card" style="border:1px solid ${sc.border};border-top:3px solid ${sc.color};padding:0;overflow:hidden;display:flex;flex-direction:column">
+
+        <!-- CARD HEADER -->
+        <div style="padding:16px 18px;background:${sc.bg};border-bottom:1px solid ${sc.border};display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:800;font-size:14px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</div>
+            <div style="font-weight:600;font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.company||'—'}</div>
+            ${c.title ? `<div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:2px">${c.title}</div>` : ''}
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+            <span style="font-family:var(--mono);font-size:9px;font-weight:800;padding:3px 8px;border-radius:4px;background:${sc.bg};color:${sc.color};border:1px solid ${sc.border};white-space:nowrap">
+              ${sc.icon} ${sc.label}
+            </span>
+            <span style="font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:${scoreColor}18;color:${scoreColor};border:1px solid ${scoreColor}30">
+              ${score}% ${scoreLabel}
+            </span>
+          </div>
+        </div>
+
+        <!-- CORE BUSINESS -->
+        <div style="padding:14px 18px;border-bottom:1px solid var(--border)">
+          <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px">📋 Core Business</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);line-height:1.7">${coreBusiness}</div>
+        </div>
+
+        <!-- PAIN POINTS + GROWTH -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border)">
+          <div style="padding:12px 14px;border-right:1px solid var(--border)">
+            <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#e05555;margin-bottom:6px">⚡ Pain Points</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6">${painPoints}</div>
+          </div>
+          <div style="padding:12px 14px">
+            <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#00bfa6;margin-bottom:6px">📈 Growth Signals</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6">${growthSignals}</div>
+          </div>
+        </div>
+
+        <!-- SERVICE RECOMMENDATION -->
+        <div style="padding:12px 18px;border-bottom:1px solid var(--border);background:${sc.bg}">
+          <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${sc.color};margin-bottom:6px">🎯 Why ${sc.label}</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6">${recommendation}</div>
+        </div>
+
+        <!-- PERSONALISATION HOOK -->
+        <div style="padding:12px 18px;border-bottom:1px solid var(--border)">
+          <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#f0c040;margin-bottom:6px">✉ Outreach Hook</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6;font-style:italic">"${hook}"</div>
+        </div>
+
+        ${c.personalization ? `
+        <!-- CLAUDE BRIEF PREVIEW -->
+        <div style="padding:12px 18px;border-bottom:1px solid var(--border);background:rgba(0,191,166,0.04)">
+          <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#00bfa6;margin-bottom:6px">✨ Claude Brief Preview</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6;white-space:pre-wrap">${c.personalization.slice(0,200)}${c.personalization.length>200?'...':''}</div>
+        </div>` : ''}
+
+        <!-- READINESS BAR + ACTIONS -->
+        <div style="padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto">
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-family:var(--mono);font-size:9px;color:var(--text-dim)">
+              <span>Outreach Readiness</span><span style="color:${scoreColor}">${score}%</span>
+            </div>
+            <div class="progress-bar" style="height:4px">
+              <div class="progress-fill" style="width:${score}%;background:${scoreColor}"></div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+              ${c.geminiResearch  ? '<span style="font-size:8px;font-family:var(--mono);padding:1px 5px;border-radius:3px;background:rgba(0,191,166,0.12);color:#00bfa6">✓ Researched</span>' : ''}
+              ${c.personalization ? '<span style="font-size:8px;font-family:var(--mono);padding:1px 5px;border-radius:3px;background:rgba(240,192,64,0.12);color:#f0c040">✓ Brief Ready</span>' : ''}
+              ${c.apolloEnriched  ? '<span style="font-size:8px;font-family:var(--mono);padding:1px 5px;border-radius:3px;background:rgba(126,200,200,0.12);color:#7ec8c8">✓ Enriched</span>' : ''}
+              ${c.pushedToInstantly ? '<span style="font-size:8px;font-family:var(--mono);padding:1px 5px;border-radius:3px;background:rgba(0,191,166,0.12);color:#00bfa6">✓ In Instantly</span>' : ''}
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            ${!c.personalization ? `<button class="btn btn-primary btn-sm" onclick="generateEmail('${c.id}');setTimeout(renderIntelligence,3000)" title="Generate Brief">✨ Brief</button>` : ''}
+            <button class="btn btn-secondary btn-sm" onclick="openContact('${c.id}')" title="View Contact">👤</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function exportIntelReport() {
+  const researched = contacts.filter(c => c.geminiResearch);
+  if (!researched.length) { toast('No research data to export', 'warn'); return; }
+
+  const parseService = (c) => {
+    if (c.service) return c.service;
+    const r = (c.geminiResearch || '').toUpperCase();
+    const hasLS = r.includes('LEADSTRONG') || r.includes('LEAD GEN') || r.includes('AUTOMATION');
+    const hasHA = r.includes('HIREAWAY') || r.includes('HIRING') || r.includes('STAFFING');
+    if (hasLS && hasHA) return 'BOTH';
+    if (hasHA) return 'HIREAWAY';
+    return 'LEADSTRONG';
+  };
+
+  const rows = researched.map(c => ({
+    Name:           c.name,
+    Company:        c.company || '—',
+    Title:          c.title   || '—',
+    Email:          c.email,
+    Industry:       c.industry || '—',
+    TradeShow:      c.showName || c.listTag || '—',
+    ServiceFit:     parseService(c),
+    HasBrief:       c.personalization ? 'Yes' : 'No',
+    BriefPreview:   (c.personalization || '').slice(0, 150),
+    Research:       (c.geminiResearch  || '').replace(/\n/g, ' | '),
+    Stage:          c.stage,
+    ApolloEnriched: c.apolloEnriched ? 'Yes' : 'No',
+    InInstantly:    c.pushedToInstantly ? 'Yes' : 'No',
+  }));
+
+  dlFile('leadstrong-intelligence-' + Date.now() + '.csv', Papa.unparse(rows), 'text/csv');
+  addAudit('data', `Intelligence report exported: ${rows.length} profiles`, 'info');
+  toast(`Intelligence report exported — ${rows.length} profiles`, 'success');
 }
 
 function uid(){return Math.random().toString(36).slice(2,9);}
