@@ -3161,10 +3161,10 @@ async function researchContact(id) {
 
   // Try models in order — flash is current, pro is fallback
   const models = [
+    'gemini-2.5-flash',
     'gemini-2.0-flash',
-    'gemini-2.0-flash-lite',
+    'gemini-2.5-pro',
     'gemini-1.5-flash',
-    'gemini-1.5-flash-8b',
   ];
 
   const prompt = `You are a B2B sales research assistant. Research this company for outreach.
@@ -6460,7 +6460,7 @@ async function testGeminiKey() {
   }
   
   toast('Testing Gemini connection...', 'info');
-  const models = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
+  const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-pro', 'gemini-1.5-flash'];
   
   for (const model of models) {
     try {
