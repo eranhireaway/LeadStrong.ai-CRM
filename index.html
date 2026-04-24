@@ -7066,16 +7066,16 @@ const PNL_KEY     = 'ls3_pnl';
 const CLIENTS_KEY = 'ls3_clients';
 
 const PNL_DEFAULTS = {
-  // Tool costs (monthly)
+  // Tool costs — cost = monthly equivalent, billing = 'monthly' or 'annual', annualTotal = full annual payment
   tools: {
-    apollo:    { name:'Apollo.io',      cost:99,   note:'Contacts & enrichment' },
-    instantly: { name:'Instantly.ai',   cost:97,   note:'Email sequences (agency plan)' },
-    claude:    { name:'Claude API',     cost:30,   note:'Est. per 200 contacts/mo' },
-    gemini:    { name:'Gemini API',     cost:10,   note:'Est. per 200 contacts/mo' },
-    monday:    { name:'Monday.com',     cost:49,   note:'CRM & ops' },
-    ahrefs:    { name:'Ahrefs',         cost:129,  note:'AEO / SEO (Lite plan)' },
-    gleap:     { name:'Gleap',          cost:39,   note:'Support bot' },
-    misc:      { name:'Misc / Domain',  cost:25,   note:'Domains, hosting, etc.' },
+    apollo:    { name:'Apollo.io',      cost:99,   billing:'monthly', note:'Contacts & enrichment' },
+    instantly: { name:'Instantly.ai',   cost:97,   billing:'monthly', note:'Email sequences (agency plan)' },
+    claude:    { name:'Claude API',     cost:30,   billing:'monthly', note:'Est. per 200 contacts/mo' },
+    gemini:    { name:'Gemini API',     cost:10,   billing:'monthly', note:'Est. per 200 contacts/mo' },
+    monday:    { name:'Monday.com',     cost:49,   billing:'annual',  annualTotal:588,  note:'CRM & ops — billed annually' },
+    ahrefs:    { name:'Ahrefs',         cost:129,  billing:'annual',  annualTotal:1548, note:'AEO / SEO — billed annually' },
+    gleap:     { name:'Gleap',          cost:39,   billing:'annual',  annualTotal:468,  note:'Support bot — billed annually' },
+    misc:      { name:'Misc / Domain',  cost:25,   billing:'annual',  annualTotal:300,  note:'Domains, hosting — billed annually' },
   },
   // Labour costs (monthly estimates)
   labour: {
@@ -7274,34 +7274,65 @@ function renderToolCosts(p) {
   document.getElementById('pnl-tool-costs').innerHTML = `
     <div style="margin-bottom:10px">
       <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:7px">Tech Stack</div>
-      ${Object.entries(p.tools).map(([k,t]) => `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-          <span style="flex:1;font-size:11px;font-weight:600">${t.name}</span>
-          <span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);flex:1">${t.note}</span>
-          <input type="number" value="${t.cost}" min="0" data-key="tools.${k}"
-            style="width:70px;padding:4px 7px;font-size:11px;text-align:right"
-            onchange="updatePnlCost('tools','${k}',this.value)">
-          <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim)">/mo</span>
-        </div>`).join('')}
-      <div style="display:flex;justify-content:space-between;padding:7px 8px;background:var(--surface3);border-radius:6px;font-family:var(--mono);font-size:11px;margin-top:6px">
-        <span style="font-weight:700">Tech Total</span>
-        <span style="color:var(--accent2)">${fmt(totalTools)}/mo</span>
+      ${Object.entries(p.tools).map(([k,t]) => {
+        const isAnnual = t.billing === 'annual';
+        const annualTotal = t.annualTotal || (t.cost * 12);
+        return `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:7px 10px;background:var(--surface3);border-radius:7px;border-left:3px solid ${isAnnual ? 'var(--accent4)' : 'var(--border)'}">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:11px;font-weight:700">${t.name}</span>
+              <span style="font-family:var(--mono);font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;
+                background:${isAnnual ? 'rgba(240,192,64,0.15)' : 'rgba(0,191,166,0.10)'};
+                color:${isAnnual ? 'var(--accent4)' : 'var(--accent)'}">
+                ${isAnnual ? '📅 ANNUAL' : '🔄 MONTHLY'}
+              </span>
+            </div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:2px">${t.note}</div>
+            ${isAnnual ? `<div style="font-family:var(--mono);font-size:9px;color:var(--accent4);margin-top:1px">Annual commitment: ${fmt(annualTotal)}/yr</div>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:4px">
+            <input type="number" value="${t.cost}" min="0" data-key="tools.${k}"
+              style="width:70px;padding:4px 7px;font-size:11px;text-align:right;background:var(--surface2)"
+              onchange="updatePnlCost('tools','${k}',this.value)">
+            <span style="font-family:var(--mono);font-size:9px;color:var(--text-dim);white-space:nowrap">/mo equiv.</span>
+          </div>
+        </div>`;
+      }).join('')}
+      <div style="margin-top:8px;padding:10px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;margin-bottom:6px">
+          <span style="font-weight:700">Monthly Tech Total</span>
+          <span style="color:var(--accent2);font-weight:800">${fmt(totalTools)}/mo</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:4px">
+          <span>Monthly billed tools</span>
+          <span>${fmt(Object.values(p.tools).filter(t=>t.billing!=='annual').reduce((a,t)=>a+Number(t.cost||0),0))}/mo</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--accent4);margin-bottom:8px">
+          <span>📅 Annual tools (monthly equiv.)</span>
+          <span>${fmt(Object.values(p.tools).filter(t=>t.billing==='annual').reduce((a,t)=>a+Number(t.cost||0),0))}/mo</span>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--accent4)">
+          <span>⚠ Annual cash commitments</span>
+          <span>${fmt(Object.values(p.tools).filter(t=>t.billing==='annual').reduce((a,t)=>a+Number(t.annualTotal||t.cost*12),0))}/yr upfront</span>
+        </div>
       </div>
     </div>
     <div>
       <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:7px">Labour (HireAway Team)</div>
       ${Object.entries(p.labour).map(([k,l]) => `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:6px 10px;background:var(--surface3);border-radius:7px">
           <span style="flex:1;font-size:11px;font-weight:600">${l.name}</span>
           <span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);flex:1">${l.note}</span>
           <input type="number" value="${l.cost}" min="0" data-key="labour.${k}"
-            style="width:70px;padding:4px 7px;font-size:11px;text-align:right"
+            style="width:70px;padding:4px 7px;font-size:11px;text-align:right;background:var(--surface2)"
             onchange="updatePnlCost('labour','${k}',this.value)">
           <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim)">/mo</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--accent4);width:65px;text-align:right">${pnlView==='annual'?fmt(l.cost*12)+'/yr':''}</span>
         </div>`).join('')}
       <div style="display:flex;justify-content:space-between;padding:7px 8px;background:var(--surface3);border-radius:6px;font-family:var(--mono);font-size:11px;margin-top:6px">
         <span style="font-weight:700">Labour Total</span>
-        <span style="color:var(--accent2)">${fmt(totalLabour)}/mo</span>
+        <span style="color:var(--accent2)">${fmtP(totalLabour)}${pLabel}</span>
       </div>
     </div>
     <div style="display:flex;justify-content:space-between;padding:9px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;font-family:var(--mono);margin-top:10px">
@@ -7473,7 +7504,22 @@ function updatePnlCost(section, key, value) {
   if (!cfg[section]) cfg[section] = {};
   if (!cfg[section][key]) cfg[section][key] = {};
   cfg[section][key].cost = Number(value);
+  // Auto-calculate annual total if billing is annual
+  const defaults = PNL_DEFAULTS[section]?.[key];
+  if (defaults?.billing === 'annual') {
+    cfg[section][key].annualTotal = Number(value) * 12;
+  }
   savePnlCfgRaw(cfg);
+}
+
+function updateToolBilling(key, billing) {
+  const cfg = getPnlCfg();
+  if (!cfg.tools) cfg.tools = {};
+  if (!cfg.tools[key]) cfg.tools[key] = {};
+  cfg.tools[key].billing = billing;
+  savePnlCfgRaw(cfg);
+  renderPnl();
+  toast(`${key} billing updated to ${billing}`, 'info');
 }
 
 function savePnlConfig() { renderPnl(); toast('Costs saved', 'success'); addAudit('data','P&L costs updated','info'); }
