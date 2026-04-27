@@ -7284,80 +7284,154 @@ function renderTierMargins(p, clients) {
 
 // ── TOOL COSTS ──
 function renderToolCosts(p) {
-  const mult = pnlView === 'annual' ? 12 : 1;
-  const pLabel = pnlView === 'annual' ? '/yr' : '/mo';
-  const fmtP = v => fmt(v * mult);
+  const isAnnual   = pnlView === 'annual';
+  const mult       = isAnnual ? 12 : 1;
+  const pLabel     = isAnnual ? '/yr' : '/mo';
+  const fmtP       = v => fmt(v * mult);
   const totalTools  = Object.values(p.tools).reduce((a,t)=>a+Number(t.cost||0),0);
   const totalLabour = Object.values(p.labour).reduce((a,l)=>a+Number(l.cost||0),0);
+  const annualCash  = Object.values(p.tools).filter(t=>t.billing==='annual').reduce((a,t)=>a+Number(t.annualTotal||t.cost*12),0);
+  const monthlyOnly = Object.values(p.tools).filter(t=>t.billing!=='annual').reduce((a,t)=>a+Number(t.cost||0),0);
+  const annualEquiv = Object.values(p.tools).filter(t=>t.billing==='annual').reduce((a,t)=>a+Number(t.cost||0),0);
 
   document.getElementById('pnl-tool-costs').innerHTML = `
-    <div style="margin-bottom:10px">
-      <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:7px">Tech Stack</div>
+    <!-- SECTION HEADER -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:13px;font-weight:800;letter-spacing:-0.3px">
+          ${isAnnual ? '📅 Annual Tool Costs' : '🔄 Monthly Tool Costs'}
+        </div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:2px">
+          ${isAnnual ? 'All values shown as annual totals (×12). Edit monthly cost below.' : 'All values shown as monthly. Toggle Annual for yearly view.'}
+        </div>
+      </div>
+      <div style="font-family:var(--mono);font-size:20px;font-weight:900;color:${isAnnual?'var(--accent4)':'var(--accent)'}">
+        ${fmtP(totalTools)}<span style="font-size:11px;font-weight:500;color:var(--text-muted)">${pLabel}</span>
+      </div>
+    </div>
+
+    <!-- TOOL ROWS -->
+    <div style="margin-bottom:14px">
       ${Object.entries(p.tools).map(([k,t]) => {
-        const isAnnual = t.billing === 'annual';
-        const annualTotal = t.annualTotal || (t.cost * 12);
+        const isBillAnnual = t.billing === 'annual';
+        const displayCost  = isAnnual ? t.cost * 12 : t.cost;
+        const annualTotal  = t.annualTotal || t.cost * 12;
         return `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:7px 10px;background:var(--surface3);border-radius:7px;border-left:3px solid ${isAnnual ? 'var(--accent4)' : 'var(--border)'}">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:6px;
+          background:var(--surface3);border-radius:9px;
+          border-left:3px solid ${isBillAnnual ? 'var(--accent4)' : 'var(--accent)'}">
+
+          <!-- NAME + META -->
           <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:6px">
-              <span style="font-size:11px;font-weight:700">${t.name}</span>
-              <span style="font-family:var(--mono);font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;
-                background:${isAnnual ? 'rgba(240,192,64,0.15)' : 'rgba(0,191,166,0.10)'};
-                color:${isAnnual ? 'var(--accent4)' : 'var(--accent)'}">
-                ${isAnnual ? '📅 ANNUAL' : '🔄 MONTHLY'}
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+              <span style="font-size:12px;font-weight:700">${t.name}</span>
+              <span style="font-family:var(--mono);font-size:8px;font-weight:800;padding:2px 6px;border-radius:4px;
+                background:${isBillAnnual?'rgba(240,192,64,0.12)':'rgba(0,191,166,0.10)'};
+                color:${isBillAnnual?'var(--accent4)':'var(--accent)'};letter-spacing:0.5px">
+                ${isBillAnnual ? '📅 ANNUAL' : '🔄 MONTHLY'}
               </span>
             </div>
-            <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:2px">${t.note}</div>
-            ${isAnnual ? `<div style="font-family:var(--mono);font-size:9px;color:var(--accent4);margin-top:1px">Annual commitment: ${fmt(annualTotal)}/yr</div>` : ''}
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">${t.note}</div>
           </div>
-          <div style="display:flex;align-items:center;gap:4px">
-            <input type="number" value="${t.cost}" min="0" data-key="tools.${k}"
-              style="width:70px;padding:4px 7px;font-size:11px;text-align:right;background:var(--surface2)"
-              onchange="updatePnlCost('tools','${k}',this.value)">
-            <span style="font-family:var(--mono);font-size:9px;color:var(--text-dim);white-space:nowrap">/ mo</span>
-            ${pnlView==='annual'?`<span style="font-family:var(--mono);font-size:9px;color:var(--accent4);min-width:55px;text-align:right">${fmt(t.cost*12)}/yr</span>`:''}
+
+          <!-- BILLING TOGGLE (per tool) -->
+          <div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;flex-shrink:0">
+            <button onclick="updateToolBilling('${k}','monthly')"
+              style="padding:3px 8px;border:none;cursor:pointer;font-family:var(--mono);font-size:8px;font-weight:700;
+              background:${!isBillAnnual?'var(--accent)':'var(--surface2)'};color:${!isBillAnnual?'#fff':'var(--text-dim)'};transition:all .15s">
+              MO
+            </button>
+            <button onclick="updateToolBilling('${k}','annual')"
+              style="padding:3px 8px;border:none;cursor:pointer;font-family:var(--mono);font-size:8px;font-weight:700;
+              background:${isBillAnnual?'var(--accent4)':'var(--surface2)'};color:${isBillAnnual?'#1a1a1a':'var(--text-dim)'};transition:all .15s">
+              YR
+            </button>
+          </div>
+
+          <!-- COST INPUT + DISPLAY -->
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0">
+            <div style="display:flex;align-items:center;gap:4px">
+              <span style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">$/mo</span>
+              <input type="number" value="${t.cost}" min="0"
+                style="width:68px;padding:4px 7px;font-size:11px;font-weight:700;text-align:right;
+                  background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text)"
+                onchange="updatePnlCost('tools','${k}',this.value);renderToolCosts(getPnl())">
+            </div>
+            ${isAnnual
+              ? `<div style="font-family:var(--mono);font-size:10px;font-weight:800;color:var(--accent4)">${fmt(t.cost*12)}/yr</div>`
+              : isBillAnnual
+                ? `<div style="font-family:var(--mono);font-size:9px;color:var(--accent4)">${fmt(annualTotal)}/yr cash</div>`
+                : ''
+            }
           </div>
         </div>`;
       }).join('')}
-      <div style="margin-top:8px;padding:10px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
-        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;margin-bottom:6px">
-          <span style="font-weight:700">Monthly Tech Total</span>
-          <span style="color:var(--accent2);font-weight:800">${fmt(totalTools)}/mo</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-bottom:4px">
-          <span>Monthly billed tools</span>
-          <span>${fmt(Object.values(p.tools).filter(t=>t.billing!=='annual').reduce((a,t)=>a+Number(t.cost||0),0))}/mo</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--accent4);margin-bottom:8px">
-          <span>📅 Annual tools (monthly equiv.)</span>
-          <span>${fmt(Object.values(p.tools).filter(t=>t.billing==='annual').reduce((a,t)=>a+Number(t.cost||0),0))}/mo</span>
-        </div>
-        <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--accent4)">
-          <span>⚠ Annual cash commitments</span>
-          <span>${fmt(Object.values(p.tools).filter(t=>t.billing==='annual').reduce((a,t)=>a+Number(t.annualTotal||t.cost*12),0))}/yr upfront</span>
-        </div>
+    </div>
+
+    <!-- COST SUMMARY BOX -->
+    <div style="padding:14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px">
+        Cost Breakdown
+      </div>
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--text-muted);padding:5px 0;border-bottom:1px solid var(--border)">
+        <span>🔄 Monthly billed tools</span>
+        <span>${fmtP(monthlyOnly)}${pLabel}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--accent4);padding:5px 0;border-bottom:1px solid var(--border)">
+        <span>📅 Annual tools (monthly equiv.)</span>
+        <span>${fmtP(annualEquiv)}${pLabel}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;font-weight:800;padding:8px 0 4px 0;border-bottom:1px solid var(--border)">
+        <span>Total Tool Cost</span>
+        <span style="color:var(--accent2)">${fmtP(totalTools)}${pLabel}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--accent4);padding:6px 0 0 0">
+        <span>⚠ Annual cash commitment (upfront)</span>
+        <span style="font-weight:700">${fmt(annualCash)}/yr</span>
       </div>
     </div>
-    <div>
-      <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:7px">Labour (HireAway Team)</div>
+
+    <!-- LABOUR SECTION -->
+    <div style="margin-top:18px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-size:13px;font-weight:800">👥 Labour Costs</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:1px">HireAway team — enter monthly salary</div>
+        </div>
+        <div style="font-family:var(--mono);font-size:18px;font-weight:900;color:var(--accent2)">
+          ${fmtP(totalLabour)}<span style="font-size:10px;font-weight:500;color:var(--text-muted)">${pLabel}</span>
+        </div>
+      </div>
       ${Object.entries(p.labour).map(([k,l]) => `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:6px 10px;background:var(--surface3);border-radius:7px">
-          <span style="flex:1;font-size:11px;font-weight:600">${l.name}</span>
-          <span style="font-family:var(--mono);font-size:10px;color:var(--text-muted);flex:1">${l.note}</span>
-          <input type="number" value="${l.cost}" min="0" data-key="labour.${k}"
-            style="width:70px;padding:4px 7px;font-size:11px;text-align:right;background:var(--surface2)"
-            onchange="updatePnlCost('labour','${k}',this.value)">
-          <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim)">/mo</span>
-          <span style="font-family:var(--mono);font-size:10px;color:var(--accent4);width:65px;text-align:right">${pnlView==='annual'?fmt(l.cost*12)+'/yr':''}</span>
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;margin-bottom:6px;background:var(--surface3);border-radius:9px;border-left:3px solid var(--border)">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:700;margin-bottom:2px">${l.name}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">${l.note}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+            <div style="display:flex;align-items:center;gap:4px">
+              <span style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">$/mo</span>
+              <input type="number" value="${l.cost}" min="0"
+                style="width:68px;padding:4px 7px;font-size:11px;font-weight:700;text-align:right;
+                  background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text)"
+                onchange="updatePnlCost('labour','${k}',this.value);renderToolCosts(getPnl())">
+            </div>
+            ${isAnnual ? `<div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent4)">${fmt(l.cost*12)}/yr</div>` : ''}
+          </div>
         </div>`).join('')}
-      <div style="display:flex;justify-content:space-between;padding:7px 8px;background:var(--surface3);border-radius:6px;font-family:var(--mono);font-size:11px;margin-top:6px">
-        <span style="font-weight:700">Labour Total</span>
-        <span style="color:var(--accent2)">${fmtP(totalLabour)}${pLabel}</span>
-      </div>
     </div>
-    <div style="display:flex;justify-content:space-between;padding:9px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;font-family:var(--mono);margin-top:10px">
-      <span style="font-weight:800">Total Monthly COGS</span>
-      <span style="color:var(--danger);font-weight:800;font-size:14px">${fmt(totalTools+totalLabour)}/mo</span>
+
+    <!-- TOTAL COGS -->
+    <div style="margin-top:12px;padding:12px 14px;background:linear-gradient(135deg,rgba(224,85,85,0.08),rgba(224,85,85,0.04));
+      border:1px solid rgba(224,85,85,0.2);border-radius:10px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-weight:800;font-size:13px">Total COGS</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:2px">Tools + Labour</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:var(--mono);font-size:22px;font-weight:900;color:var(--danger)">${fmtP(totalTools+totalLabour)}<span style="font-size:11px;font-weight:500;color:var(--text-muted)">${pLabel}</span></div>
+        ${isAnnual ? '' : `<div style="font-family:var(--mono);font-size:10px;color:var(--accent4)">${fmt((totalTools+totalLabour)*12)}/yr equiv.</div>`}
+      </div>
     </div>`;
 }
 
