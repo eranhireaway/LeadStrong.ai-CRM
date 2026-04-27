@@ -816,6 +816,9 @@ textarea{resize:vertical;min-height:80px;}
     <span id="intel-count-label" style="font-family:var(--mono);font-size:11px;color:var(--text-muted);white-space:nowrap"></span>
   </div>
 
+  <!-- EMAIL PERFORMANCE STATS -->
+  <div id="intel-email-stats" style="margin-bottom:20px"></div>
+
   <!-- INTEL CARDS GRID -->
   <div id="intel-cards-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px"></div>
 </div>
@@ -1552,6 +1555,66 @@ textarea{resize:vertical;min-height:80px;}
   </div>
 </div>
 
+<!-- ── BI AUDIT AGENTS ── -->
+<div class="view" id="view-bi-audit">
+  <div class="page-header">
+    <div>
+      <div class="page-title">🛡 BI Audit Agents</div>
+      <div class="page-sub">5 AI agents auditing accuracy, completeness, delivery, intelligence quality and lead score integrity</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-secondary btn-sm" onclick="showView('contacts');setTimeout(()=>pullInstantlyReplies(),200)">↩ Pull Instantly Replies</button>
+      <button class="btn btn-secondary btn-sm" onclick="syncFromMonday()">⬇ Sync from Monday.com</button>
+      <button class="btn btn-gold btn-sm" onclick="syncToMonday()">⬆ Sync to Monday.com</button>
+      <button class="btn btn-primary" onclick="runAllBiAgents()">▶ Run All Agents</button>
+    </div>
+  </div>
+
+  <!-- AGENT STATUS CARDS -->
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px">
+    <div class="card" style="padding:12px;border-top:3px solid #00bfa6;cursor:pointer" onclick="runAllBiAgents()">
+      <div style="font-size:20px;margin-bottom:4px">🔬</div>
+      <div style="font-weight:700;font-size:11px">Research Accuracy</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:2px">Validates Gemini quality</div>
+    </div>
+    <div class="card" style="padding:12px;border-top:3px solid #f0c040;cursor:pointer" onclick="runAllBiAgents()">
+      <div style="font-size:20px;margin-bottom:4px">📋</div>
+      <div style="font-weight:700;font-size:11px">Data Completeness</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:2px">Checks all required fields</div>
+    </div>
+    <div class="card" style="padding:12px;border-top:3px solid #7ec8c8;cursor:pointer" onclick="runAllBiAgents()">
+      <div style="font-size:20px;margin-bottom:4px">📤</div>
+      <div style="font-weight:700;font-size:11px">Outreach Delivery</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:2px">Tracks sequence health</div>
+    </div>
+    <div class="card" style="padding:12px;border-top:3px solid #00d4b8;cursor:pointer" onclick="runAllBiAgents()">
+      <div style="font-size:20px;margin-bottom:4px">🧬</div>
+      <div style="font-weight:700;font-size:11px">BI Quality</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:2px">Service fit validation</div>
+    </div>
+    <div class="card" style="padding:12px;border-top:3px solid #8ab8c8;cursor:pointer" onclick="runAllBiAgents()">
+      <div style="font-size:20px;margin-bottom:4px">📊</div>
+      <div style="font-weight:700;font-size:11px">Lead Score Integrity</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:2px">Score misclassification</div>
+    </div>
+  </div>
+
+  <!-- AUDIT RESULTS -->
+  <div id="bi-audit-content">
+    <div class="card" style="text-align:center;padding:50px">
+      <div style="font-size:48px;margin-bottom:16px">🛡</div>
+      <div style="font-weight:700;font-size:16px;margin-bottom:8px">BI Audit Agents Ready</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);margin-bottom:20px">
+        5 agents will analyse your contacts for research accuracy, data completeness,<br>
+        outreach delivery health, BI quality, and lead score integrity.
+      </div>
+      <button class="btn btn-primary" onclick="runAllBiAgents()" style="font-size:14px;padding:12px 28px">
+        ▶ Run All 5 Agents Now
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ── SETTINGS ── -->
 <div class="view" id="view-settings">
   <div class="page-header"><div><div class="page-title">Settings</div><div class="page-sub">Sequence timing & sender identity</div></div><button class="btn btn-primary" onclick="saveSettings()">Save</button></div>
@@ -1582,7 +1645,7 @@ textarea{resize:vertical;min-height:80px;}
   <div class="modal modal-lg">
     <button class="modal-close" onclick="closeModal('contact-modal')">✕</button>
     <div class="modal-title" id="cm-title">Contact</div>
-    <div class="tabs"><div class="tab active" onclick="cmTab(this,'cm-tab-overview')">Overview</div><div class="tab" onclick="cmTab(this,'cm-tab-research')">🧠 Research</div><div class="tab" onclick="cmTab(this,'cm-tab-emails')">📧 Emails</div><div class="tab" onclick="cmTab(this,'cm-tab-apollo')">🔭 Apollo</div></div>
+    <div class="tabs"><div class="tab active" onclick="cmTab(this,'cm-tab-overview')">Overview</div><div class="tab" onclick="cmTab(this,'cm-tab-research')">🧠 Research</div><div class="tab" onclick="cmTab(this,'cm-tab-emails')">📧 Emails</div><div class="tab" onclick="cmTab(this,'cm-tab-timeline')">📋 Timeline</div><div class="tab" onclick="cmTab(this,'cm-tab-apollo')">🔭 Apollo</div></div>
     <div id="cm-tab-overview"><div class="detail-row" id="cm-details"></div><div class="action-row" id="cm-actions"></div></div>
     <div id="cm-tab-research" style="display:none"><div id="cm-research-content"></div></div>
     <div id="cm-tab-emails" style="display:none"><div id="cm-emails"></div></div>
@@ -3010,6 +3073,8 @@ function showView(id) {
   if(id==='security') renderSecurityView();
   if(id==='pnl') renderPnl();
   if(id==='intelligence') loadIntelligenceView();
+  if(id==='bi-audit') { const saved=localStorage.getItem('ls3_bi_audit'); if(saved) { const {results}=JSON.parse(saved); renderBiAuditView(results); } }
+  if(id==='dashboard') { updateAllLeadScores(); renderDashboardStats(); }
   if(id==='shows') renderShows();
   if(id==='qa-agent') loadQaView();
   if(id==='self-heal') loadHealView();
@@ -3185,6 +3250,13 @@ function openContact(id) {
   document.getElementById('cm-apollo-content').innerHTML=c.apolloEnriched
     ?`<div class="research-panel" style="border-color:rgba(56,189,248,0.2)"><div class="research-title" style="color:#7ec8c8">🔭 Apollo Data</div><div class="research-body">Title: ${c.title||'-'}\nIndustry: ${c.industry||'-'}\nCompany Size: ${c.companySize||'-'}\nLinkedIn: ${c.linkedin||'-'}\nPhone: ${c.phone||'-'}</div></div>`
     :`<div class="empty-state"><div class="empty-icon">🔭</div><div class="empty-title">Not enriched yet</div></div>`;
+  // Render timeline
+  const tlEl = document.getElementById('contact-timeline-content');
+  if (tlEl) tlEl.innerHTML = renderTimeline(id);
+  // Show lead score
+  const { score, label, color } = calcLeadScore(c);
+  const scoreEl = document.getElementById('contact-lead-score');
+  if (scoreEl) scoreEl.innerHTML = `<span style="font-family:var(--mono);font-size:11px;font-weight:700;color:${color}">${label} · ${score}%</span>`;
   document.getElementById('contact-modal').classList.add('open');
   cmTab(document.querySelector('#contact-modal .tab'),'cm-tab-overview');
 }
@@ -6629,7 +6701,9 @@ async function testGeminiKey() {
 // ═══════════════════════════════════════════════════
 
 function loadIntelligenceView() {
+  updateAllLeadScores();
   renderIntelligence();
+  renderEmailStats('intel-email-stats');
 }
 
 function renderIntelligence() {
@@ -6968,6 +7042,7 @@ function renderIntelCards() {
               <div class="progress-fill" style="width:${score}%;background:${scoreColor}"></div>
             </div>
             <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+              ${(() => { const wc = calcWarmCold(c); return `<span style="font-size:8px;font-family:var(--mono);padding:1px 5px;border-radius:3px;background:${wc.color}18;color:${wc.color}">${wc.label}</span>`; })()}
               ${c.geminiResearch  ? '<span style="font-size:8px;font-family:var(--mono);padding:1px 5px;border-radius:3px;background:rgba(0,191,166,0.12);color:#00bfa6">✓ Researched</span>' : ''}
               ${c.personalization ? '<span style="font-size:8px;font-family:var(--mono);padding:1px 5px;border-radius:3px;background:rgba(240,192,64,0.12);color:#f0c040">✓ Brief Ready</span>' : ''}
               ${c.apolloEnriched  ? '<span style="font-size:8px;font-family:var(--mono);padding:1px 5px;border-radius:3px;background:rgba(126,200,200,0.12);color:#7ec8c8">✓ Enriched</span>' : ''}
@@ -7043,6 +7118,906 @@ function exportIntelReport() {
   toast(`Intelligence report exported — ${rows.length} profiles`, 'success');
 }
 
+
+// ═══════════════════════════════════════════════════════════════════
+//  LEAD SCORING ENGINE
+// ═══════════════════════════════════════════════════════════════════
+function calcLeadScore(c) {
+  let score = 0; const breakdown = [];
+
+  // Research quality (0-25)
+  if (c.geminiResearch) {
+    const words = (c.geminiResearch||'').split(' ').filter(w=>w.length>2).length;
+    const pts = words > 100 ? 25 : words > 50 ? 18 : words > 20 ? 10 : 5;
+    score += pts; breakdown.push({ label:'Research Quality', pts, max:25, reason: words+' words' });
+  } else {
+    breakdown.push({ label:'Research Quality', pts:0, max:25, reason:'Not researched' });
+  }
+
+  // Service fit clarity (0-20)
+  if (c.geminiResearch) {
+    const r = (c.geminiResearch||'').toUpperCase();
+    const hasBoth = (r.includes('LEADSTRONG')||r.includes('LEAD GEN')) && (r.includes('HIREAWAY')||r.includes('HIRING'));
+    const hasClear = r.includes('BOTH') || r.includes('LEADSTRONG ONLY') || r.includes('HIREAWAY ONLY');
+    const pts = hasBoth ? 20 : hasClear ? 15 : 8;
+    score += pts; breakdown.push({ label:'Service Fit Clarity', pts, max:20, reason: hasBoth?'Dual opportunity':'Single service' });
+  }
+
+  // Data completeness (0-20)
+  let complete = 0;
+  if (c.email)    complete += 5;
+  if (c.company)  complete += 4;
+  if (c.title)    complete += 4;
+  if (c.industry) complete += 4;
+  if (c.phone)    complete += 3;
+  score += complete; breakdown.push({ label:'Data Completeness', pts:complete, max:20, reason:`${[c.email,c.company,c.title,c.industry,c.phone].filter(Boolean).length}/5 fields` });
+
+  // Enrichment (0-15)
+  const enrichPts = c.apolloEnriched ? 15 : 0;
+  score += enrichPts; breakdown.push({ label:'Apollo Enriched', pts:enrichPts, max:15, reason:c.apolloEnriched?'Enriched':'Not enriched' });
+
+  // Brief generated (0-10)
+  const briefPts = c.personalization ? 10 : 0;
+  score += briefPts; breakdown.push({ label:'Brief Generated', pts:briefPts, max:10, reason:c.personalization?'Ready':'Pending' });
+
+  // Outreach stage momentum (0-10)
+  const stageMap = { 'NEW':0, 'RESEARCHED':3, 'BRIEFED':5, 'CONTACTED':7, 'REPLIED':10, 'MEETING':10, 'CLOSED':10 };
+  const stagePts = stageMap[(c.stage||'NEW').toUpperCase()] || 0;
+  score += stagePts; breakdown.push({ label:'Stage Momentum', pts:stagePts, max:10, reason:c.stage||'New' });
+
+  // Recency bonus (0-5) — recently updated contacts are warmer
+  if (c.updatedAt) {
+    const daysSince = (Date.now() - new Date(c.updatedAt)) / 86400000;
+    const pts = daysSince < 3 ? 5 : daysSince < 7 ? 3 : daysSince < 14 ? 1 : 0;
+    score += pts; breakdown.push({ label:'Recency', pts, max:5, reason: Math.round(daysSince)+' days ago' });
+  }
+
+  // Warm/Cold label
+  const label = score >= 80 ? '🔥 Hot' : score >= 60 ? '🌡 Warm' : score >= 40 ? '🌤 Lukewarm' : '❄ Cold';
+  const color = score >= 80 ? '#00bfa6' : score >= 60 ? '#f0c040' : score >= 40 ? '#7ec8c8' : '#8ab8c8';
+
+  return { score: Math.min(score, 100), label, color, breakdown };
+}
+
+function updateAllLeadScores() {
+  let updated = 0;
+  contacts.forEach(c => {
+    const { score } = calcLeadScore(c);
+    if (c.leadScore !== score) { c.leadScore = score; updated++; }
+  });
+  if (updated > 0) saveEncryptedData();
+  return updated;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  CONVERSATION TIMELINE
+// ═══════════════════════════════════════════════════════════════════
+function addTimelineEvent(contactId, type, note, meta={}) {
+  const c = contacts.find(x => x.id === contactId);
+  if (!c) return;
+  if (!c.timeline) c.timeline = [];
+  c.timeline.unshift({
+    id:   uid(),
+    type, // 'research'|'brief'|'email_sent'|'email_opened'|'replied'|'meeting'|'note'|'stage_change'|'enriched'
+    note,
+    meta,
+    ts:   new Date().toISOString()
+  });
+  // Keep last 50 events
+  if (c.timeline.length > 50) c.timeline = c.timeline.slice(0, 50);
+  saveEncryptedData();
+}
+
+function renderTimeline(contactId) {
+  const c = contacts.find(x => x.id === contactId);
+  if (!c) return '<div class="empty-state">No timeline data</div>';
+  const events = c.timeline || [];
+  if (!events.length) return `
+    <div style="text-align:center;padding:30px;font-family:var(--mono);font-size:11px;color:var(--text-dim)">
+      <div style="font-size:28px;margin-bottom:8px">📋</div>
+      No activity yet — timeline builds automatically as you research, brief, and contact this lead.
+    </div>`;
+
+  const icons = {
+    research:     { icon:'🧬', color:'#00bfa6', label:'Gemini Research' },
+    brief:        { icon:'✨', color:'#f0c040', label:'Brief Generated' },
+    email_sent:   { icon:'📤', color:'#7ec8c8', label:'Email Sent' },
+    email_opened: { icon:'👁', color:'#00bfa6', label:'Email Opened' },
+    replied:      { icon:'↩', color:'#00d4b8', label:'Replied' },
+    meeting:      { icon:'📅', color:'#f0c040', label:'Meeting Booked' },
+    note:         { icon:'📝', color:'#8ab8c8', label:'Note Added' },
+    stage_change: { icon:'→', color:'#7ec8c8', label:'Stage Updated' },
+    enriched:     { icon:'⚡', color:'#00bfa6', label:'Enriched' },
+    pushed:       { icon:'🚀', color:'#f0c040', label:'Pushed to Instantly' },
+  };
+
+  return `<div style="position:relative;padding-left:22px">
+    <div style="position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--border)"></div>
+    ${events.map(ev => {
+      const cfg = icons[ev.type] || { icon:'●', color:'var(--text-muted)', label:ev.type };
+      const date = new Date(ev.ts);
+      const dateStr = date.toLocaleDateString('en-CA') + ' ' + date.toLocaleTimeString('en-CA', {hour:'2-digit',minute:'2-digit'});
+      return `
+      <div style="position:relative;margin-bottom:12px;padding:10px 12px;background:var(--surface3);border-radius:8px;border-left:3px solid ${cfg.color}">
+        <div style="position:absolute;left:-18px;top:12px;width:12px;height:12px;border-radius:50%;background:${cfg.color};border:2px solid var(--bg)"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:13px">${cfg.icon}</span>
+            <span style="font-weight:700;font-size:11px">${cfg.label}</span>
+          </div>
+          <span style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">${dateStr}</span>
+        </div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6">${ev.note||''}</div>
+        ${ev.meta?.model ? `<div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:3px">via ${ev.meta.model}</div>` : ''}
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  EMAIL PERFORMANCE STATS
+// ═══════════════════════════════════════════════════════════════════
+function getEmailStats() {
+  const total      = contacts.length;
+  const researched = contacts.filter(c => c.geminiResearch).length;
+  const briefed    = contacts.filter(c => c.personalization).length;
+  const pushed     = contacts.filter(c => c.pushedToInstantly).length;
+  const replied    = contacts.filter(c => (c.stage||'').toUpperCase() === 'REPLIED').length;
+  const meetings   = contacts.filter(c => (c.stage||'').toUpperCase() === 'MEETING').length;
+  const contacted  = contacts.filter(c => ['CONTACTED','REPLIED','MEETING'].includes((c.stage||'').toUpperCase())).length;
+
+  // By trade show / list
+  const byShow = {};
+  contacts.forEach(c => {
+    const show = c.showName || c.listTag || 'Untagged';
+    if (!byShow[show]) byShow[show] = { total:0, researched:0, briefed:0, pushed:0, replied:0, meetings:0 };
+    byShow[show].total++;
+    if (c.geminiResearch)        byShow[show].researched++;
+    if (c.personalization)       byShow[show].briefed++;
+    if (c.pushedToInstantly)     byShow[show].pushed++;
+    if ((c.stage||'').toUpperCase()==='REPLIED')  byShow[show].replied++;
+    if ((c.stage||'').toUpperCase()==='MEETING')  byShow[show].meetings++;
+  });
+
+  // By service fit
+  const byService = { 'LEADSTRONG':0, 'HIREAWAY':0, 'BOTH':0, 'UNKNOWN':0 };
+  contacts.forEach(c => {
+    const r = (c.geminiResearch||'').toUpperCase();
+    const ls = r.includes('LEADSTRONG')||r.includes('LEAD GEN');
+    const ha = r.includes('HIREAWAY')||r.includes('HIRING')||r.includes('STAFFING');
+    if (ls && ha) byService['BOTH']++;
+    else if (ls)  byService['LEADSTRONG']++;
+    else if (ha)  byService['HIREAWAY']++;
+    else          byService['UNKNOWN']++;
+  });
+
+  const replyRate   = pushed > 0 ? Math.round(replied/pushed*100) : 0;
+  const meetingRate = pushed > 0 ? Math.round(meetings/pushed*100) : 0;
+  const researchCoverage = total > 0 ? Math.round(researched/total*100) : 0;
+  const briefCoverage    = researched > 0 ? Math.round(briefed/researched*100) : 0;
+  const pushRate         = briefed > 0 ? Math.round(pushed/briefed*100) : 0;
+
+  return { total, researched, briefed, pushed, replied, meetings, contacted,
+           byShow, byService, replyRate, meetingRate, researchCoverage, briefCoverage, pushRate };
+}
+
+function renderEmailStats(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const s = getEmailStats();
+  const funnelSteps = [
+    { label:'Total Contacts',  val:s.total,      pct:100,                           color:'#8ab8c8' },
+    { label:'Researched',      val:s.researched,  pct:s.researchCoverage,            color:'#00bfa6' },
+    { label:'Briefed',         val:s.briefed,     pct:s.briefCoverage,               color:'#f0c040' },
+    { label:'Pushed to Send',  val:s.pushed,      pct:s.pushRate,                    color:'#7ec8c8' },
+    { label:'Replied',         val:s.replied,     pct:s.replyRate,                   color:'#00d4b8' },
+    { label:'Meetings Booked', val:s.meetings,    pct:s.meetingRate,                 color:'#f0c040' },
+  ];
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+      <!-- FUNNEL -->
+      <div class="card">
+        <div class="card-title">📊 Outreach Funnel</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-bottom:12px">End-to-end pipeline conversion</div>
+        ${funnelSteps.map((step, i) => `
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;margin-bottom:4px">
+              <span style="color:var(--text-muted)">${step.label}</span>
+              <span style="color:${step.color};font-weight:700">${step.val} <span style="color:var(--text-dim);font-weight:400">(${step.pct}%)</span></span>
+            </div>
+            <div style="height:6px;background:var(--surface3);border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${step.pct}%;background:${step.color};border-radius:3px;transition:width .4s"></div>
+            </div>
+          </div>`).join('')}
+      </div>
+
+      <!-- SERVICE FIT BREAKDOWN -->
+      <div class="card">
+        <div class="card-title">🎯 Service Fit Distribution</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-bottom:12px">How Gemini classified your list</div>
+        ${Object.entries(s.byService).map(([svc, cnt]) => {
+          const colors = { LEADSTRONG:'#00bfa6', HIREAWAY:'#f0c040', BOTH:'#7ec8c8', UNKNOWN:'#555' };
+          const pct = s.total > 0 ? Math.round(cnt/s.total*100) : 0;
+          return `
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;margin-bottom:4px">
+              <span>${svc}</span><span style="color:${colors[svc]};font-weight:700">${cnt} (${pct}%)</span>
+            </div>
+            <div style="height:6px;background:var(--surface3);border-radius:3px">
+              <div style="height:100%;width:${pct}%;background:${colors[svc]};border-radius:3px"></div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <!-- BY TRADE SHOW -->
+      <div class="card" style="grid-column:1/-1">
+        <div class="card-title">🎪 Performance by Trade Show / List</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border);color:var(--text-dim)">
+                <th style="text-align:left;padding:6px 8px">List / Show</th>
+                <th style="text-align:center;padding:6px 8px">Total</th>
+                <th style="text-align:center;padding:6px 8px">Researched</th>
+                <th style="text-align:center;padding:6px 8px">Briefed</th>
+                <th style="text-align:center;padding:6px 8px">Pushed</th>
+                <th style="text-align:center;padding:6px 8px">Replied</th>
+                <th style="text-align:center;padding:6px 8px">Meetings</th>
+                <th style="text-align:center;padding:6px 8px">Reply Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${Object.entries(s.byShow).map(([show, d]) => {
+                const rr = d.pushed > 0 ? Math.round(d.replied/d.pushed*100) : 0;
+                const rrColor = rr >= 10 ? '#00bfa6' : rr >= 5 ? '#f0c040' : '#e05555';
+                return `<tr style="border-bottom:1px solid var(--border)">
+                  <td style="padding:7px 8px;font-weight:700;color:var(--text)">${show}</td>
+                  <td style="text-align:center;padding:7px 8px">${d.total}</td>
+                  <td style="text-align:center;padding:7px 8px;color:#00bfa6">${d.researched}</td>
+                  <td style="text-align:center;padding:7px 8px;color:#f0c040">${d.briefed}</td>
+                  <td style="text-align:center;padding:7px 8px;color:#7ec8c8">${d.pushed}</td>
+                  <td style="text-align:center;padding:7px 8px;color:#00d4b8">${d.replied}</td>
+                  <td style="text-align:center;padding:7px 8px;color:#f0c040">${d.meetings}</td>
+                  <td style="text-align:center;padding:7px 8px;font-weight:800;color:${rrColor}">${rr}%</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  WARM / COLD SCORE
+// ═══════════════════════════════════════════════════════════════════
+function calcWarmCold(c) {
+  let heat = 0;
+  const factors = [];
+
+  // Days since last activity
+  const lastActivity = c.updatedAt || c.createdAt || new Date().toISOString();
+  const daysSince = (Date.now() - new Date(lastActivity)) / 86400000;
+  if (daysSince < 1)       { heat += 30; factors.push('Active today'); }
+  else if (daysSince < 3)  { heat += 20; factors.push('Active 3 days'); }
+  else if (daysSince < 7)  { heat += 10; factors.push('Active this week'); }
+  else if (daysSince < 14) { heat += 5;  factors.push('Active 2 weeks ago'); }
+  else                     { heat -= 10; factors.push(`Inactive ${Math.round(daysSince)}d`); }
+
+  // Stage signals
+  const stage = (c.stage||'').toUpperCase();
+  if (stage === 'REPLIED')   { heat += 40; factors.push('Replied ✓'); }
+  if (stage === 'MEETING')   { heat += 50; factors.push('Meeting booked ✓'); }
+  if (stage === 'CONTACTED') { heat += 15; factors.push('Contacted'); }
+  if (stage === 'BRIEFED')   { heat += 10; factors.push('Brief ready'); }
+
+  // Enrichment
+  if (c.apolloEnriched) { heat += 10; factors.push('Enriched'); }
+  if (c.geminiResearch) { heat += 10; factors.push('Researched'); }
+  if (c.personalization){ heat += 10; factors.push('Brief done'); }
+  if (c.pushedToInstantly){ heat += 5; factors.push('In sequence'); }
+
+  const score = Math.max(0, Math.min(100, heat));
+  const label = score >= 70 ? '🔥 Hot'
+              : score >= 50 ? '🌡 Warm'
+              : score >= 30 ? '🌤 Lukewarm'
+              : '❄ Cold';
+  const color = score >= 70 ? '#e05555'
+              : score >= 50 ? '#f0c040'
+              : score >= 30 ? '#7ec8c8'
+              : '#555';
+  const bar   = score >= 70 ? '#e05555'
+              : score >= 50 ? '#f0c040'
+              : score >= 30 ? '#7ec8c8'
+              : '#555';
+
+  return { score, label, color, bar, factors };
+}
+
+function getWarmColdSummary() {
+  const buckets = { hot:[], warm:[], lukewarm:[], cold:[] };
+  contacts.forEach(c => {
+    const { score } = calcWarmCold(c);
+    if (score >= 70)      buckets.hot.push(c);
+    else if (score >= 50) buckets.warm.push(c);
+    else if (score >= 30) buckets.lukewarm.push(c);
+    else                  buckets.cold.push(c);
+  });
+  return buckets;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  MONDAY.COM SYNC
+// ═══════════════════════════════════════════════════════════════════
+async function syncToMonday(contactIds) {
+  const token = getKey('monday');
+  if (!token) { toast('Add Monday.com API token in Integrations', 'error'); return; }
+
+  const toSync = contactIds
+    ? contacts.filter(c => contactIds.includes(c.id))
+    : contacts.filter(c => c.leadScore >= 60 || ['REPLIED','MEETING','CONTACTED'].includes((c.stage||'').toUpperCase()));
+
+  if (!toSync.length) { toast('No contacts match sync criteria', 'warn'); return; }
+
+  toast(`Syncing ${toSync.length} contacts to Monday.com...`, 'info');
+  let synced = 0, failed = 0;
+
+  for (const c of toSync) {
+    try {
+      const { score, label } = calcLeadScore(c);
+      const { label: heatLabel } = calcWarmCold(c);
+
+      // Find or create item in Monday.com
+      const query = `mutation {
+        create_item(
+          board_id: ${encKeys.mondayBoardId || 0},
+          item_name: "${(c.name||'').replace(/"/g,'')}"
+          column_values: "${JSON.stringify({
+            email:    { email: c.email, text: c.email },
+            text:     c.company || '',
+            status:   { label: c.stage || 'New' },
+            numbers:  score,
+            long_text: (c.personalization||'').slice(0,200),
+          }).replace(/"/g,'\\"')}"
+        ) { id }
+      }`;
+
+      const res = await fetch('https://api.monday.com/v2', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'Authorization': token },
+        body: JSON.stringify({ query })
+      });
+      const data = await res.json();
+      if (data.data?.create_item?.id) {
+        c.mondayItemId = data.data.create_item.id;
+        synced++;
+      } else { failed++; }
+    } catch(e) { failed++; }
+    await delay(200);
+  }
+
+  await saveEncryptedData();
+  addAudit('integration', `Monday.com sync: ${synced} synced, ${failed} failed`, synced>0?'info':'warn');
+  toast(`Monday.com: ${synced} synced${failed?', '+failed+' failed':''}`, synced>0?'success':'warn');
+}
+
+async function syncFromMonday() {
+  const token = getKey('monday');
+  if (!token) { toast('Add Monday.com API token in Integrations', 'error'); return; }
+  toast('Pulling updates from Monday.com...', 'info');
+
+  try {
+    const boardId = encKeys.mondayBoardId;
+    if (!boardId) { toast('Set Monday.com Board ID in Integrations → Monday.com settings', 'warn'); return; }
+
+    const query = `{ boards(ids:[${boardId}]) { items_page(limit:100) { items {
+      id name
+      column_values { id text value }
+    }}}}`;
+
+    const res  = await fetch('https://api.monday.com/v2', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization': token },
+      body: JSON.stringify({ query })
+    });
+    const data = await res.json();
+    const items = data.data?.boards?.[0]?.items_page?.items || [];
+    let updated = 0;
+
+    items.forEach(item => {
+      // Match by monday item ID or by email
+      const emailCol = item.column_values.find(cv => cv.id === 'email');
+      const statusCol = item.column_values.find(cv => cv.id === 'status');
+      const emailVal = emailCol ? JSON.parse(emailCol.value||'{}').email : null;
+
+      const contact = contacts.find(c =>
+        c.mondayItemId === item.id ||
+        (emailVal && c.email?.toLowerCase() === emailVal.toLowerCase())
+      );
+
+      if (contact && statusCol?.text) {
+        const newStage = statusCol.text.toUpperCase();
+        if (contact.stage !== newStage) {
+          addTimelineEvent(contact.id, 'stage_change',
+            `Stage updated from Monday.com: ${contact.stage||'New'} → ${newStage}`,
+            { source:'monday' }
+          );
+          contact.stage = newStage;
+          contact.mondayItemId = item.id;
+          updated++;
+        }
+      }
+    });
+
+    if (updated > 0) await saveEncryptedData();
+    addAudit('integration', `Monday.com pull: ${updated} contacts updated`, 'info');
+    toast(`Monday.com: ${updated} contacts updated from board`, 'success');
+    renderContacts();
+  } catch(e) {
+    toast('Monday.com sync failed: ' + e.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  REPLY TRACKING (Instantly webhook simulation + manual)
+// ═══════════════════════════════════════════════════════════════════
+async function pullInstantlyReplies() {
+  const key = getKey('instantly');
+  if (!key) { toast('Add Instantly API key in Integrations', 'error'); return; }
+
+  toast('Checking Instantly for replies...', 'info');
+  try {
+    // Instantly API v2 — get campaign analytics
+    const res = await fetch('https://api.instantly.ai/api/v2/campaigns?limit=20', {
+      headers: { 'Authorization': `Bearer ${key}` }
+    });
+    const data = await res.json();
+    if (!data || data.error) throw new Error(data?.error || 'API error');
+
+    const campaigns = data.campaigns || data || [];
+    let repliesFound = 0;
+
+    for (const campaign of campaigns.slice(0, 5)) {
+      try {
+        const leadsRes = await fetch(`https://api.instantly.ai/api/v2/campaign/${campaign.id}/leads?limit=100`, {
+          headers: { 'Authorization': `Bearer ${key}` }
+        });
+        const leadsData = await leadsRes.json();
+        const leads = leadsData.leads || leadsData || [];
+
+        leads.forEach(lead => {
+          const c = contacts.find(x =>
+            x.email?.toLowerCase() === lead.email?.toLowerCase()
+          );
+          if (!c) return;
+
+          // Detect reply signal
+          const hasReplied = lead.status === 'REPLIED' || lead.reply_count > 0 || lead.last_reply_time;
+          const hasOpened  = lead.open_count > 0;
+          const hasBounced = lead.status === 'BOUNCED';
+
+          if (hasReplied && (c.stage||'NEW') !== 'REPLIED') {
+            c.stage = 'REPLIED';
+            c.repliedAt = lead.last_reply_time || new Date().toISOString();
+            c.updatedAt = new Date().toISOString();
+            addTimelineEvent(c.id, 'replied',
+              `Reply detected via Instantly — campaign: ${campaign.name||campaign.id}`,
+              { campaign: campaign.name, source:'instantly' }
+            );
+            repliesFound++;
+          } else if (hasOpened && !c.emailOpened) {
+            c.emailOpened = true;
+            c.updatedAt = new Date().toISOString();
+            addTimelineEvent(c.id, 'email_opened',
+              `Email opened — ${lead.open_count} open${lead.open_count!==1?'s':''}`,
+              { openCount: lead.open_count, source:'instantly' }
+            );
+          }
+
+          if (hasBounced && c.stage !== 'BOUNCED') {
+            c.stage = 'BOUNCED';
+            addTimelineEvent(c.id, 'note', 'Email bounced — verify address', { source:'instantly' });
+          }
+        });
+      } catch(e) { /* skip this campaign */ }
+      await delay(300);
+    }
+
+    if (repliesFound > 0) {
+      await saveEncryptedData();
+      updateAllLeadScores();
+      renderContacts();
+    }
+
+    addAudit('integration', `Instantly reply pull: ${repliesFound} new replies detected`, 'info');
+    toast(repliesFound > 0 ? `${repliesFound} new repl${repliesFound!==1?'ies':'y'} detected! 🎉` : 'No new replies', repliesFound>0?'success':'info');
+
+  } catch(e) {
+    console.error('Instantly reply pull error:', e);
+    toast('Instantly pull failed: ' + e.message, 'error');
+  }
+}
+
+function markReplied(contactId, note='') {
+  const c = contacts.find(x => x.id === contactId);
+  if (!c) return;
+  c.stage = 'REPLIED';
+  c.repliedAt = new Date().toISOString();
+  c.updatedAt = new Date().toISOString();
+  addTimelineEvent(contactId, 'replied', note || 'Reply marked manually');
+  updateAllLeadScores();
+  saveEncryptedData().then(() => {
+    renderContacts();
+    if (document.getElementById('contact-modal')?.classList.contains('open')) openContact(contactId);
+    toast('Marked as replied ✓', 'success');
+  });
+}
+
+function markMeeting(contactId, note='') {
+  const c = contacts.find(x => x.id === contactId);
+  if (!c) return;
+  c.stage = 'MEETING';
+  c.meetingAt = new Date().toISOString();
+  c.updatedAt = new Date().toISOString();
+  addTimelineEvent(contactId, 'meeting', note || 'Meeting booked');
+  updateAllLeadScores();
+  saveEncryptedData().then(() => {
+    renderContacts();
+    toast('Meeting booked ✓ 🎉', 'success');
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  BI AUDIT AGENTS — Accuracy, Completeness, Delivery
+// ═══════════════════════════════════════════════════════════════════
+const BI_AGENTS = {
+
+  // AGENT 1: Research Accuracy Auditor
+  researchAccuracy: {
+    name: 'Research Accuracy Agent',
+    icon: '🔬',
+    description: 'Validates Gemini research quality and detects hallucinations',
+    run: async (contacts, keys) => {
+      const issues = [];
+      contacts.forEach(c => {
+        if (!c.geminiResearch) {
+          issues.push({ contact:c.name, company:c.company, severity:'high', issue:'No research data', action:'Run Gemini research' });
+          return;
+        }
+        const r = c.geminiResearch;
+        const words = r.split(' ').filter(w=>w.length>2).length;
+
+        if (words < 30)
+          issues.push({ contact:c.name, company:c.company, severity:'high', issue:`Research too short (${words} words)`, action:'Re-research' });
+        if (r.toLowerCase().includes("here's your") || r.toLowerCase().includes("certainly") || r.toLowerCase().includes("i don't have"))
+          issues.push({ contact:c.name, company:c.company, severity:'high', issue:'Generic/failed research response', action:'Re-research with web grounding' });
+        if (!r.includes('WHAT THEY DO') && !r.includes('1.') && !r.match(/\d\./))
+          issues.push({ contact:c.name, company:c.company, severity:'medium', issue:'Research not structured', action:'Re-research to get structured output' });
+        if (r.toUpperCase().includes(c.company?.toUpperCase()) && words < 50)
+          issues.push({ contact:c.name, company:c.company, severity:'medium', issue:'Research only echoes company name', action:'Re-research' });
+      });
+      return { agent:'researchAccuracy', issues, score: Math.max(0, 100 - issues.filter(i=>i.severity==='high').length * 5 - issues.filter(i=>i.severity==='medium').length * 2) };
+    }
+  },
+
+  // AGENT 2: Data Completeness Auditor
+  dataCompleteness: {
+    name: 'Data Completeness Agent',
+    icon: '📋',
+    description: 'Checks required fields, missing data, and enrichment gaps',
+    run: async (contacts) => {
+      const issues = [];
+      const requiredFields = ['name','email','company'];
+      const enrichFields   = ['title','industry','phone'];
+
+      contacts.forEach(c => {
+        requiredFields.forEach(f => {
+          if (!c[f]) issues.push({ contact:c.name||'Unknown', company:c.company||'?', severity:'high', issue:`Missing ${f}`, action:`Add ${f}` });
+        });
+        const missingEnrich = enrichFields.filter(f => !c[f]);
+        if (missingEnrich.length >= 2)
+          issues.push({ contact:c.name, company:c.company, severity:'medium', issue:`Missing: ${missingEnrich.join(', ')}`, action:'Run Apollo enrichment' });
+        if (!c.geminiResearch)
+          issues.push({ contact:c.name, company:c.company, severity:'medium', issue:'Not researched', action:'Run Gemini research' });
+        if (c.geminiResearch && !c.personalization)
+          issues.push({ contact:c.name, company:c.company, severity:'low', issue:'Research done but no brief', action:'Generate Claude brief' });
+      });
+
+      const complete   = contacts.filter(c => requiredFields.every(f=>c[f]) && c.geminiResearch && c.personalization).length;
+      const completePct = contacts.length > 0 ? Math.round(complete/contacts.length*100) : 0;
+      return { agent:'dataCompleteness', issues, score:completePct, complete, total:contacts.length };
+    }
+  },
+
+  // AGENT 3: Outreach Delivery Auditor
+  outreachDelivery: {
+    name: 'Outreach Delivery Agent',
+    icon: '📤',
+    description: 'Audits email sequence delivery, bounce detection, and pipeline flow',
+    run: async (contacts) => {
+      const issues = [];
+      const briefedNotPushed = contacts.filter(c => c.personalization && !c.pushedToInstantly);
+      const pushedNoActivity  = contacts.filter(c => c.pushedToInstantly && (c.stage||'NEW')==='NEW');
+      const staleContacted    = contacts.filter(c => {
+        if (!['CONTACTED'].includes((c.stage||'').toUpperCase())) return false;
+        const days = c.updatedAt ? (Date.now()-new Date(c.updatedAt))/86400000 : 99;
+        return days > 14;
+      });
+      const bounced = contacts.filter(c => (c.stage||'').toUpperCase() === 'BOUNCED');
+
+      if (briefedNotPushed.length)
+        issues.push({ severity:'medium', issue:`${briefedNotPushed.length} contacts briefed but not pushed to Instantly`, action:'Push to Instantly', contacts:briefedNotPushed.map(c=>c.name) });
+      if (pushedNoActivity.length)
+        issues.push({ severity:'medium', issue:`${pushedNoActivity.length} contacts in Instantly but stage still "New"`, action:'Pull Instantly replies to update stages', contacts:pushedNoActivity.map(c=>c.name) });
+      if (staleContacted.length)
+        issues.push({ severity:'high', issue:`${staleContacted.length} contacts stuck in "Contacted" for 14+ days`, action:'Follow up or re-engage', contacts:staleContacted.map(c=>c.name) });
+      if (bounced.length)
+        issues.push({ severity:'high', issue:`${bounced.length} email bounces detected`, action:'Verify/update email addresses', contacts:bounced.map(c=>c.name) });
+
+      const deliveryHealth = Math.max(0, 100 - staleContacted.length*5 - bounced.length*10 - Math.floor(briefedNotPushed.length/5)*3);
+      return { agent:'outreachDelivery', issues, score:deliveryHealth };
+    }
+  },
+
+  // AGENT 4: BI Intelligence Quality Agent
+  biQuality: {
+    name: 'BI Quality Agent',
+    icon: '🧬',
+    description: 'Validates service fit classifications, outreach hooks, and intelligence depth',
+    run: async (contacts) => {
+      const issues = [];
+      const researched = contacts.filter(c => c.geminiResearch);
+
+      researched.forEach(c => {
+        const r = c.geminiResearch || '';
+        // Check service fit is deterministic
+        const hasLS = r.toUpperCase().includes('LEADSTRONG') || r.toUpperCase().includes('LEAD GEN');
+        const hasHA = r.toUpperCase().includes('HIREAWAY') || r.toUpperCase().includes('HIRING');
+        if (!hasLS && !hasHA)
+          issues.push({ contact:c.name, company:c.company, severity:'medium', issue:'Cannot determine service fit from research', action:'Re-research with structured prompt' });
+
+        // Check outreach hook quality
+        const hookMatch = r.match(/OUTREACH HOOK[:\s]+(.*?)(?:\n|$)/i);
+        if (hookMatch && hookMatch[1].length < 30)
+          issues.push({ contact:c.name, company:c.company, severity:'low', issue:'Outreach hook too generic/short', action:'Re-research for better hook' });
+
+        // Check for duplicate hooks
+      });
+
+      // Flag duplicate company research (same company, multiple contacts)
+      const companyCounts = {};
+      contacts.forEach(c => { if (c.company) companyCounts[c.company] = (companyCounts[c.company]||0)+1; });
+      Object.entries(companyCounts).filter(([,cnt])=>cnt>1).forEach(([co,cnt]) =>
+        issues.push({ company:co, severity:'low', issue:`${cnt} contacts from ${co} — verify deduplication`, action:'Review duplicates' })
+      );
+
+      const biScore = researched.length > 0 ? Math.max(0, 100 - Math.round(issues.filter(i=>i.severity==='high').length/researched.length*100) - Math.round(issues.filter(i=>i.severity==='medium').length/researched.length*50)) : 0;
+      return { agent:'biQuality', issues, score:biScore };
+    }
+  },
+
+  // AGENT 5: Lead Score Integrity Agent
+  leadScoreIntegrity: {
+    name: 'Lead Score Agent',
+    icon: '📊',
+    description: 'Validates lead scores and flags misclassified contacts',
+    run: async (contacts) => {
+      const issues = [];
+      updateAllLeadScores();
+
+      contacts.forEach(c => {
+        const { score, breakdown } = calcLeadScore(c);
+        // High score but no contact
+        if (score >= 70 && !c.pushedToInstantly && !(c.stage||'').match(/CONTACTED|REPLIED|MEETING/i))
+          issues.push({ contact:c.name, company:c.company, severity:'medium', issue:`Score ${score} but not contacted yet`, action:'Prioritise for outreach' });
+        // In sequence but low score
+        if (c.pushedToInstantly && score < 30)
+          issues.push({ contact:c.name, company:c.company, severity:'medium', issue:`Score ${score} but already in sequence — data may be incomplete`, action:'Enrich and re-research' });
+        // Meeting booked but score low (data gap)
+        if ((c.stage||'').toUpperCase()==='MEETING' && score < 50)
+          issues.push({ contact:c.name, company:c.company, severity:'low', issue:`Meeting booked but score only ${score} — update contact data`, action:'Enrich contact' });
+      });
+
+      const highValue = contacts.filter(c => (c.leadScore||0) >= 70).length;
+      return { agent:'leadScoreIntegrity', issues, score:100-Math.min(100,issues.filter(i=>i.severity!=='low').length*3), highValue };
+    }
+  }
+};
+
+async function runAllBiAgents() {
+  toast('Running all BI audit agents...', 'info');
+  const results = {};
+
+  for (const [key, agent] of Object.entries(BI_AGENTS)) {
+    try {
+      results[key] = await agent.run(contacts, encKeys);
+      results[key].name = agent.name;
+      results[key].icon = agent.icon;
+    } catch(e) {
+      results[key] = { name:agent.name, icon:agent.icon, issues:[{ severity:'high', issue:'Agent error: '+e.message }], score:0 };
+    }
+  }
+
+  // Save results
+  localStorage.setItem('ls3_bi_audit', JSON.stringify({ results, ts: new Date().toISOString() }));
+  renderBiAuditView(results);
+  addAudit('system', 'BI Audit Agents completed', 'info');
+
+  const totalIssues = Object.values(results).reduce((a,r)=>a+(r.issues?.length||0),0);
+  const avgScore    = Math.round(Object.values(results).reduce((a,r)=>a+(r.score||0),0)/Object.keys(results).length);
+  toast(`BI Audit complete — ${totalIssues} issues found, avg score ${avgScore}%`, totalIssues===0?'success':'warn', 5000);
+  return results;
+}
+
+function renderBiAuditView(results) {
+  const el = document.getElementById('bi-audit-content');
+  if (!el) return;
+
+  const allIssues = Object.values(results).flatMap(r =>
+    (r.issues||[]).map(i => ({ ...i, agent:r.name, agentIcon:r.icon }))
+  );
+
+  const highCount   = allIssues.filter(i=>i.severity==='high').length;
+  const medCount    = allIssues.filter(i=>i.severity==='medium').length;
+  const lowCount    = allIssues.filter(i=>i.severity==='low').length;
+  const avgScore    = Object.values(results).length ?
+    Math.round(Object.values(results).reduce((a,r)=>a+(r.score||0),0)/Object.values(results).length) : 0;
+
+  el.innerHTML = `
+    <!-- OVERALL HEALTH -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px">
+      <div class="metric-card" style="border-top:3px solid ${avgScore>=80?'#00bfa6':avgScore>=60?'#f0c040':'#e05555'}">
+        <div class="metric-label">Overall Health</div>
+        <div class="metric-value" style="color:${avgScore>=80?'#00bfa6':avgScore>=60?'#f0c040':'#e05555'}">${avgScore}%</div>
+        <div class="metric-sub">Avg agent score</div>
+      </div>
+      <div class="metric-card" style="border-top:3px solid #e05555">
+        <div class="metric-label">🔴 Critical</div>
+        <div class="metric-value" style="color:#e05555">${highCount}</div>
+        <div class="metric-sub">High severity</div>
+      </div>
+      <div class="metric-card" style="border-top:3px solid #f0c040">
+        <div class="metric-label">🟡 Warnings</div>
+        <div class="metric-value" style="color:#f0c040">${medCount}</div>
+        <div class="metric-sub">Medium severity</div>
+      </div>
+      <div class="metric-card" style="border-top:3px solid #7ec8c8">
+        <div class="metric-label">🔵 Notes</div>
+        <div class="metric-value" style="color:#7ec8c8">${lowCount}</div>
+        <div class="metric-sub">Low severity</div>
+      </div>
+      <div class="metric-card" style="border-top:3px solid #00bfa6">
+        <div class="metric-label">Agents Run</div>
+        <div class="metric-value">${Object.keys(results).length}</div>
+        <div class="metric-sub">${new Date().toLocaleDateString()}</div>
+      </div>
+    </div>
+
+    <!-- AGENT SCORECARDS -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px">
+      ${Object.values(results).map(r => {
+        const sc = r.score||0;
+        const col = sc>=80?'#00bfa6':sc>=60?'#f0c040':'#e05555';
+        return `<div class="card" style="border-top:3px solid ${col};padding:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div style="font-weight:700;font-size:12px">${r.icon} ${r.name}</div>
+            <div style="font-family:var(--mono);font-size:18px;font-weight:900;color:${col}">${sc}%</div>
+          </div>
+          <div style="height:4px;background:var(--surface3);border-radius:2px;margin-bottom:8px">
+            <div style="height:100%;width:${sc}%;background:${col};border-radius:2px"></div>
+          </div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">
+            ${r.issues?.length||0} issue${r.issues?.length!==1?'s':''}
+            ${r.highValue!==undefined?` · ${r.highValue} high-value leads`:''}
+            ${r.complete!==undefined?` · ${r.complete}/${r.total} complete`:''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <!-- ISSUES TABLE -->
+    ${allIssues.length ? `
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="card-title">⚠ Issues Found (${allIssues.length})</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-danger btn-sm" onclick="autoFixBiIssues()">🔧 Auto-Fix All</button>
+          <button class="btn btn-secondary btn-sm" onclick="exportBiAudit()">⬇ Export</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border);color:var(--text-dim)">
+              <th style="text-align:left;padding:6px 8px">Severity</th>
+              <th style="text-align:left;padding:6px 8px">Agent</th>
+              <th style="text-align:left;padding:6px 8px">Contact / Issue</th>
+              <th style="text-align:left;padding:6px 8px">Recommended Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${allIssues.sort((a,b) => {
+              const order = {high:0,medium:1,low:2};
+              return (order[a.severity]||2)-(order[b.severity]||2);
+            }).map(i => {
+              const sevColor = i.severity==='high'?'#e05555':i.severity==='medium'?'#f0c040':'#7ec8c8';
+              return `<tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:7px 8px">
+                  <span style="font-size:8px;font-weight:800;padding:2px 7px;border-radius:4px;
+                    background:${sevColor}18;color:${sevColor};text-transform:uppercase">
+                    ${i.severity}
+                  </span>
+                </td>
+                <td style="padding:7px 8px;color:var(--text-muted)">${i.agentIcon} ${i.agent||''}</td>
+                <td style="padding:7px 8px">
+                  <div style="font-weight:600;color:var(--text)">${i.contact||i.company||''}</div>
+                  <div style="color:var(--text-dim);font-size:9px">${i.issue}</div>
+                </td>
+                <td style="padding:7px 8px;color:var(--accent)">${i.action}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>` : `
+    <div class="card" style="text-align:center;padding:40px">
+      <div style="font-size:48px;margin-bottom:12px">✅</div>
+      <div style="font-weight:700;font-size:16px;color:#00bfa6;margin-bottom:6px">All Clear!</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">No issues found across all BI audit agents</div>
+    </div>`}`;
+}
+
+async function autoFixBiIssues() {
+  toast('Auto-fixing critical issues...', 'info');
+  let fixed = 0;
+
+  // Fix 1: Re-research poor quality
+  const poorResearch = contacts.filter(c => {
+    if (!c.geminiResearch) return false;
+    const words = c.geminiResearch.split(' ').filter(w=>w.length>2).length;
+    return words < 30 || c.geminiResearch.toLowerCase().includes("here's your");
+  });
+
+  for (const c of poorResearch.slice(0, 10)) {
+    c.geminiResearch = null;
+    await researchContact(c.id);
+    await delay(1500);
+    fixed++;
+  }
+
+  // Fix 2: Update lead scores
+  updateAllLeadScores();
+
+  // Fix 3: Mark briefed contacts for push reminder
+  const readyToPush = contacts.filter(c => c.personalization && !c.pushedToInstantly);
+  if (readyToPush.length) toast(`${readyToPush.length} contacts ready to push to Instantly`, 'info', 5000);
+
+  await saveEncryptedData();
+  toast(`Auto-fix complete — ${fixed} contacts re-researched`, 'success');
+  await runAllBiAgents();
+}
+
+function exportBiAudit() {
+  const saved = localStorage.getItem('ls3_bi_audit');
+  if (!saved) { toast('Run audit first', 'warn'); return; }
+  const { results, ts } = JSON.parse(saved);
+  const allIssues = Object.values(results).flatMap(r =>
+    (r.issues||[]).map(i => ({
+      Agent: r.name,
+      Severity: i.severity,
+      Contact: i.contact||'',
+      Company: i.company||'',
+      Issue: i.issue,
+      Action: i.action,
+      AuditDate: ts
+    }))
+  );
+  dlFile('bi-audit-'+Date.now()+'.csv', Papa.unparse(allIssues), 'text/csv');
+  toast('Audit report exported', 'success');
+}
 function uid(){return Math.random().toString(36).slice(2,9);}
 
 async function pushSingleBriefToInstantly(id) {
