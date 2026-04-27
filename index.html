@@ -3688,7 +3688,7 @@ async function loadInstantlyCampaignsIntoSendView() {
   const sel = document.getElementById('send-instantly-campaign');
   if (!sel || !key) return;
   try {
-    const res = await fetch(`https://api.instantly.ai/api/v1/campaign/list?api_key=${key}&limit=20&skip=0`);
+    const res = await fetch('https://api.instantly.ai/api/v2/campaigns?limit=20&status=1', { headers: { 'Authorization': `Bearer ${key}` } });
     const data = await res.json();
     const campaigns = data.campaigns || [];
     sel.innerHTML = '<option value="">— Select campaign -</option>' +
@@ -3697,17 +3697,109 @@ async function loadInstantlyCampaignsIntoSendView() {
 }
 
 async function fetchInstantlyCampaigns() {
-  const key=getKey('instantly'); const wrap=document.getElementById('instantly-campaigns');
-  if(!key){wrap.innerHTML='<div class="empty-state"><div class="empty-icon">🚀</div><div class="empty-title">Add Instantly key in Integrations</div></div>';return;}
-  wrap.innerHTML='<div style="display:flex;align-items:center;gap:8px;color:var(--accent);font-family:var(--mono);font-size:12px"><span class="spinner"></span> Loading...</div>';
+  const key  = getKey('instantly');
+  const wrap = document.getElementById('instantly-campaigns');
+  if (!key) {
+    wrap.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">🚀</div>
+      <div class="empty-title">Instantly not connected</div>
+      <div class="empty-sub">Add your API key in Integrations → Instantly.ai</div>
+    </div>`;
+    return;
+  }
+  wrap.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--accent);font-family:var(--mono);font-size:12px"><span class="spinner"></span> Loading campaigns...</div>';
   try {
-    const res=await fetch(`https://api.instantly.ai/api/v1/campaign/list?api_key=${key}&limit=20&skip=0`);
-    const data=await res.json();
-    const campaigns=data.campaigns||[];
-    if(!campaigns.length){wrap.innerHTML='<div class="empty-state"><div class="empty-icon">🚀</div><div class="empty-title">No campaigns yet</div></div>';return;}
-    wrap.innerHTML=campaigns.map(cam=>`<div class="campaign-card"><div><div class="campaign-name">${cam.name}</div><div class="campaign-meta">ID: ${cam.id} · ${cam.leads_count||0} leads</div></div><button class="btn btn-primary btn-sm" onclick="pushContactsToCampaign('${cam.id}')">⬆ Push Contacts</button></div>`).join('');
-    addAudit('api','Instantly campaigns loaded','info');
-  } catch(e){wrap.innerHTML='<div class="empty-state"><div class="empty-icon">❌</div><div class="empty-title">Failed: '+e.message+'</div></div>';}
+    // v2 API with Bearer token (CORS supported)
+    const res = await fetch('https://api.instantly.ai/api/v2/campaigns?limit=20&status=1', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${key}`,
+        'Content-Type':  'application/json'
+      }
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      throw new Error(`${res.status}: ${err.message || err.error || res.statusText}`);
+    }
+
+    const data      = await res.json();
+    const campaigns = data.items || data.campaigns || data || [];
+
+    if (!campaigns.length) {
+      wrap.innerHTML = `<div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <div class="empty-title">No active campaigns found</div>
+        <div class="empty-sub">Create a campaign in Instantly first, then come back here to push contacts</div>
+      </div>`;
+      return;
+    }
+
+    // Fetch lead counts for each campaign
+    wrap.innerHTML = campaigns.map(cam => {
+      const leadsCount = cam.leads_count || cam.total_leads || 0;
+      const status     = cam.status === 1 ? '🟢 Active' : cam.status === 2 ? '⏸ Paused' : '⚪ Draft';
+      return `
+      <div class="campaign-card" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface3);border-radius:9px;margin-bottom:8px;border-left:3px solid var(--accent)">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:13px;margin-bottom:3px">${cam.name}</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);display:flex;gap:12px">
+            <span>${status}</span>
+            <span>👥 ${leadsCount} leads</span>
+            <span style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">${cam.id}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:7px;flex-shrink:0">
+          <button class="btn btn-secondary btn-sm" onclick="viewCampaignStats('${cam.id}','${cam.name}')">📊 Stats</button>
+          <button class="btn btn-primary btn-sm" onclick="pushContactsToCampaign('${cam.id}')">⬆ Push Contacts</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    addAudit('api', `Instantly: ${campaigns.length} campaigns loaded`, 'info');
+
+  } catch(e) {
+    console.error('Instantly fetch error:', e);
+    const isCors = e.message.includes('fetch') || e.message.includes('network') || e.message.includes('CORS');
+    wrap.innerHTML = `
+      <div class="card" style="border-top:3px solid var(--danger);padding:20px">
+        <div style="font-size:24px;margin-bottom:8px">❌</div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px">Failed to connect to Instantly</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);margin-bottom:14px;line-height:1.7">
+          ${isCors
+            ? `<strong>Network/CORS error</strong> — Instantly's API may be blocking direct browser requests.<br>
+               This usually means your API key scopes need <code>campaigns:read</code> enabled.`
+            : `<strong>Error:</strong> ${e.message}`}
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-bottom:12px">
+          <strong style="color:var(--text)">To fix:</strong><br>
+          1. Go to <strong>app.instantly.ai → Settings → API Keys</strong><br>
+          2. Delete your current key and create a new one<br>
+          3. Select scopes: <code>campaigns:read</code>, <code>campaigns:create</code>, <code>leads:read</code>, <code>leads:write</code><br>
+          4. Save the new key in <strong>Integrations → Instantly.ai</strong>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" onclick="fetchInstantlyCampaigns()">↺ Try Again</button>
+          <button class="btn btn-secondary btn-sm" onclick="showView('integrations')">Go to Integrations</button>
+        </div>
+      </div>`;
+  }
+}
+
+async function viewCampaignStats(campaignId, campaignName) {
+  const key = getKey('instantly');
+  if (!key) return;
+  toast(`Loading stats for ${campaignName}...`, 'info');
+  try {
+    const res = await fetch(`https://api.instantly.ai/api/v2/campaigns/${campaignId}/analytics`, {
+      headers: { 'Authorization': `Bearer ${key}` }
+    });
+    if (!res.ok) throw new Error(res.statusText);
+    const d = await res.json();
+    toast(`${campaignName}: ${d.leads_count||0} leads · ${d.emails_sent||0} sent · ${d.open_count||0} opens · ${d.reply_count||0} replies`, 'info', 8000);
+  } catch(e) {
+    toast('Stats not available for this campaign', 'warn');
+  }
 }
 
 
@@ -4478,11 +4570,10 @@ async function pushContactsToCampaign(campaignId, contactList) {
   }));
 
   try {
-    const res = await fetch('https://api.instantly.ai/api/v1/lead/add', {
+    const res = await fetch('https://api.instantly.ai/api/v2/leads/add', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
       body: JSON.stringify({
-        api_key: key,
         campaign_id: campaignId,
         leads,
         skip_if_in_workspace: true
@@ -4906,7 +4997,7 @@ async function loadInstantlyCampaignsIntoModal() {
   if (!sel) return;
   if (!key) { sel.innerHTML = '<option value="">— Add Instantly key in Integrations —</option>'; return; }
   try {
-    const res  = await fetch(`https://api.instantly.ai/api/v1/campaign/list?api_key=${key}&limit=20&skip=0`);
+    const res  = await fetch(`https://api.instantly.ai/api/v2/campaigns?limit=20&status=1`);
     const data = await res.json();
     const cams = data.campaigns || [];
     sel.innerHTML = '<option value="">— Select campaign —</option>' +
