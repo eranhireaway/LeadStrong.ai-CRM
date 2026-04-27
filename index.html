@@ -7115,12 +7115,22 @@ function saveClients(v)   { localStorage.setItem(CLIENTS_KEY, JSON.stringify(v))
 
 function getPnl() {
   const saved = getPnlCfg();
+  // Deep merge: for each key, spread defaults first then saved fields
+  // This preserves name/note from defaults even when saved object only has cost/billing
+  const deepMerge = (defaults, saved) => {
+    const result = {};
+    const allKeys = new Set([...Object.keys(defaults), ...Object.keys(saved||{})]);
+    for (const k of allKeys) {
+      result[k] = { ...(defaults[k]||{}), ...(saved?.[k]||{}) };
+    }
+    return result;
+  };
   return {
-    tools:   { ...PNL_DEFAULTS.tools,   ...(saved.tools||{}) },
-    labour:  { ...PNL_DEFAULTS.labour,  ...(saved.labour||{}) },
-    tiers:   { ...PNL_DEFAULTS.tiers,   ...(saved.tiers||{}) },
+    tools:         deepMerge(PNL_DEFAULTS.tools,         saved.tools||{}),
+    labour:        deepMerge(PNL_DEFAULTS.labour,        saved.labour||{}),
+    tiers:         { ...PNL_DEFAULTS.tiers,   ...(saved.tiers||{}) },
     perEmailCosts: { ...PNL_DEFAULTS.perEmailCosts, ...(saved.perEmailCosts||{}) },
-    qProjection: saved.qProjection || PNL_DEFAULTS.qProjection,
+    qProjection:   saved.qProjection || PNL_DEFAULTS.qProjection,
   };
 }
 
@@ -7284,153 +7294,167 @@ function renderTierMargins(p, clients) {
 
 // ── TOOL COSTS ──
 function renderToolCosts(p) {
-  const isAnnual   = pnlView === 'annual';
-  const mult       = isAnnual ? 12 : 1;
-  const pLabel     = isAnnual ? '/yr' : '/mo';
-  const fmtP       = v => fmt(v * mult);
+  const isAnnual    = pnlView === 'annual';
+  const pLabel      = isAnnual ? '/yr' : '/mo';
+  const fmtP        = v => fmt(v * (isAnnual ? 12 : 1));
   const totalTools  = Object.values(p.tools).reduce((a,t)=>a+Number(t.cost||0),0);
   const totalLabour = Object.values(p.labour).reduce((a,l)=>a+Number(l.cost||0),0);
   const annualCash  = Object.values(p.tools).filter(t=>t.billing==='annual').reduce((a,t)=>a+Number(t.annualTotal||t.cost*12),0);
   const monthlyOnly = Object.values(p.tools).filter(t=>t.billing!=='annual').reduce((a,t)=>a+Number(t.cost||0),0);
   const annualEquiv = Object.values(p.tools).filter(t=>t.billing==='annual').reduce((a,t)=>a+Number(t.cost||0),0);
 
-  document.getElementById('pnl-tool-costs').innerHTML = `
-    <!-- SECTION HEADER -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">
-      <div>
-        <div style="font-size:13px;font-weight:800;letter-spacing:-0.3px">
-          ${isAnnual ? '📅 Annual Tool Costs' : '🔄 Monthly Tool Costs'}
+  const toolRow = (section, k, t) => {
+    const isBillAnnual = t.billing === 'annual';
+    const isCustom     = k.startsWith('custom_');
+    return `
+    <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;margin-bottom:5px;
+      background:var(--surface3);border-radius:9px;
+      border-left:3px solid ${isBillAnnual?'var(--accent4)':'var(--accent)'}">
+
+      <!-- NAME (editable) -->
+      <div style="flex:1;min-width:0">
+        <input value="${(t.name||'').replace(/"/g,'&quot;')}"
+          style="font-size:11px;font-weight:700;background:transparent;border:none;border-bottom:1px dashed transparent;
+            color:var(--text);width:100%;padding:1px 3px;border-radius:3px;cursor:text"
+          onmouseover="this.style.borderBottomColor='var(--border)'"
+          onmouseout="this.style.borderBottomColor='transparent'"
+          onfocus="this.style.background='var(--surface2)';this.style.borderBottomColor='var(--accent)'"
+          onblur="this.style.background='transparent';this.style.borderBottomColor='transparent';
+            updatePnlField('${section}','${k}','name',this.value);renderToolCosts(getPnl())"
+          onkeydown="if(event.key==='Enter')this.blur()"
+          placeholder="Tool name">
+        <input value="${(t.note||'').replace(/"/g,'&quot;')}"
+          style="font-family:var(--mono);font-size:9px;background:transparent;border:none;border-bottom:1px dashed transparent;
+            color:var(--text-dim);width:100%;padding:1px 3px;margin-top:2px;cursor:text"
+          onmouseover="this.style.borderBottomColor='var(--border)'"
+          onmouseout="this.style.borderBottomColor='transparent'"
+          onfocus="this.style.background='var(--surface2)'"
+          onblur="this.style.background='transparent';
+            updatePnlField('${section}','${k}','note',this.value)"
+          onkeydown="if(event.key==='Enter')this.blur()"
+          placeholder="Description">
+      </div>
+
+      <!-- BILLING TOGGLE -->
+      <div style="display:flex;border:1px solid var(--border);border-radius:5px;overflow:hidden;flex-shrink:0">
+        <button onclick="updateToolBilling('${section}','${k}','monthly')"
+          title="Monthly billing"
+          style="padding:3px 8px;border:none;cursor:pointer;font-family:var(--mono);font-size:8px;font-weight:800;
+          background:${!isBillAnnual?'var(--accent)':'var(--surface2)'};
+          color:${!isBillAnnual?'#fff':'var(--text-dim)'}">MO</button>
+        <button onclick="updateToolBilling('${section}','${k}','annual')"
+          title="Annual billing"
+          style="padding:3px 8px;border:none;cursor:pointer;font-family:var(--mono);font-size:8px;font-weight:800;
+          background:${isBillAnnual?'var(--accent4)':'var(--surface2)'};
+          color:${isBillAnnual?'#1a1a1a':'var(--text-dim)'}">YR</button>
+      </div>
+
+      <!-- COST INPUT -->
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:3px">
+          <span style="font-family:var(--mono);font-size:8px;color:var(--text-dim)">$/mo</span>
+          <input type="number" value="${t.cost||0}" min="0"
+            style="width:65px;padding:4px 6px;font-size:12px;font-weight:800;text-align:right;
+              background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text)"
+            onchange="updatePnlCost('${section}','${k}',this.value);renderToolCosts(getPnl())"
+            onfocus="this.select()">
         </div>
-        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:2px">
-          ${isAnnual ? 'All values shown as annual totals (×12). Edit monthly cost below.' : 'All values shown as monthly. Toggle Annual for yearly view.'}
+        ${isAnnual
+          ? `<div style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--accent4)">${fmt((t.cost||0)*12)}/yr</div>`
+          : isBillAnnual
+            ? `<div style="font-family:var(--mono);font-size:8px;color:var(--accent4)">${fmt((t.annualTotal||t.cost*12))}/yr cash</div>`
+            : ''}
+      </div>
+
+      <!-- REMOVE (custom only) -->
+      ${isCustom ? `<button onclick="removePnlTool('${section}','${k}')"
+        style="background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:14px;padding:2px 4px;flex-shrink:0"
+        title="Remove">✕</button>` : ''}
+    </div>`;
+  };
+
+  document.getElementById('pnl-tool-costs').innerHTML = `
+    <!-- ── TECH STACK ── -->
+    <div style="margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:13px;font-weight:800">
+          ${isAnnual ? '📅 Annual' : '🔄 Monthly'} Tool Costs
+        </div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:1px">
+          Click any name or description to edit · Toggle MO/YR per tool · Changes auto-save
         </div>
       </div>
       <div style="font-family:var(--mono);font-size:20px;font-weight:900;color:${isAnnual?'var(--accent4)':'var(--accent)'}">
-        ${fmtP(totalTools)}<span style="font-size:11px;font-weight:500;color:var(--text-muted)">${pLabel}</span>
+        ${fmtP(totalTools)}<span style="font-size:10px;font-weight:400;color:var(--text-muted)">${pLabel}</span>
       </div>
     </div>
 
-    <!-- TOOL ROWS -->
-    <div style="margin-bottom:14px">
-      ${Object.entries(p.tools).map(([k,t]) => {
-        const isBillAnnual = t.billing === 'annual';
-        const displayCost  = isAnnual ? t.cost * 12 : t.cost;
-        const annualTotal  = t.annualTotal || t.cost * 12;
-        return `
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:6px;
-          background:var(--surface3);border-radius:9px;
-          border-left:3px solid ${isBillAnnual ? 'var(--accent4)' : 'var(--accent)'}">
-
-          <!-- NAME + META -->
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-              <span style="font-size:12px;font-weight:700">${t.name}</span>
-              <span style="font-family:var(--mono);font-size:8px;font-weight:800;padding:2px 6px;border-radius:4px;
-                background:${isBillAnnual?'rgba(240,192,64,0.12)':'rgba(0,191,166,0.10)'};
-                color:${isBillAnnual?'var(--accent4)':'var(--accent)'};letter-spacing:0.5px">
-                ${isBillAnnual ? '📅 ANNUAL' : '🔄 MONTHLY'}
-              </span>
-            </div>
-            <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">${t.note}</div>
-          </div>
-
-          <!-- BILLING TOGGLE (per tool) -->
-          <div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;flex-shrink:0">
-            <button onclick="updateToolBilling('${k}','monthly')"
-              style="padding:3px 8px;border:none;cursor:pointer;font-family:var(--mono);font-size:8px;font-weight:700;
-              background:${!isBillAnnual?'var(--accent)':'var(--surface2)'};color:${!isBillAnnual?'#fff':'var(--text-dim)'};transition:all .15s">
-              MO
-            </button>
-            <button onclick="updateToolBilling('${k}','annual')"
-              style="padding:3px 8px;border:none;cursor:pointer;font-family:var(--mono);font-size:8px;font-weight:700;
-              background:${isBillAnnual?'var(--accent4)':'var(--surface2)'};color:${isBillAnnual?'#1a1a1a':'var(--text-dim)'};transition:all .15s">
-              YR
-            </button>
-          </div>
-
-          <!-- COST INPUT + DISPLAY -->
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0">
-            <div style="display:flex;align-items:center;gap:4px">
-              <span style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">$/mo</span>
-              <input type="number" value="${t.cost}" min="0"
-                style="width:68px;padding:4px 7px;font-size:11px;font-weight:700;text-align:right;
-                  background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text)"
-                onchange="updatePnlCost('tools','${k}',this.value);renderToolCosts(getPnl())">
-            </div>
-            ${isAnnual
-              ? `<div style="font-family:var(--mono);font-size:10px;font-weight:800;color:var(--accent4)">${fmt(t.cost*12)}/yr</div>`
-              : isBillAnnual
-                ? `<div style="font-family:var(--mono);font-size:9px;color:var(--accent4)">${fmt(annualTotal)}/yr cash</div>`
-                : ''
-            }
-          </div>
-        </div>`;
-      }).join('')}
+    <div style="margin-bottom:12px">
+      ${Object.entries(p.tools).map(([k,t]) => toolRow('tools', k, t)).join('')}
+      <button onclick="addPnlTool('tools')"
+        style="width:100%;padding:8px;background:transparent;border:1px dashed var(--border);border-radius:8px;
+          color:var(--text-dim);font-family:var(--mono);font-size:10px;cursor:pointer;margin-top:4px;
+          display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s"
+        onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+        onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-dim)'">
+        + Add Tool / Service Cost
+      </button>
     </div>
 
-    <!-- COST SUMMARY BOX -->
-    <div style="padding:14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">
-      <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px">
-        Cost Breakdown
+    <!-- COST SUMMARY -->
+    <div style="padding:12px 14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--text-muted);padding:4px 0;border-bottom:1px solid var(--border)">
+        <span>🔄 Monthly billed</span><span>${fmtP(monthlyOnly)}${pLabel}</span>
       </div>
-      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--text-muted);padding:5px 0;border-bottom:1px solid var(--border)">
-        <span>🔄 Monthly billed tools</span>
-        <span>${fmtP(monthlyOnly)}${pLabel}</span>
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--accent4);padding:4px 0;border-bottom:1px solid var(--border)">
+        <span>📅 Annual tools (monthly equiv.)</span><span>${fmtP(annualEquiv)}${pLabel}</span>
       </div>
-      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--accent4);padding:5px 0;border-bottom:1px solid var(--border)">
-        <span>📅 Annual tools (monthly equiv.)</span>
-        <span>${fmtP(annualEquiv)}${pLabel}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;font-weight:800;padding:8px 0 4px 0;border-bottom:1px solid var(--border)">
-        <span>Total Tool Cost</span>
-        <span style="color:var(--accent2)">${fmtP(totalTools)}${pLabel}</span>
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;font-weight:800;padding:7px 0 4px 0;border-bottom:1px solid var(--border)">
+        <span>Total Tool Cost</span><span style="color:var(--accent2)">${fmtP(totalTools)}${pLabel}</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--accent4);padding:6px 0 0 0">
-        <span>⚠ Annual cash commitment (upfront)</span>
-        <span style="font-weight:700">${fmt(annualCash)}/yr</span>
+        <span>⚠ Annual cash upfront</span><span style="font-weight:700">${fmt(annualCash)}/yr</span>
       </div>
     </div>
 
-    <!-- LABOUR SECTION -->
-    <div style="margin-top:18px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)">
-        <div>
-          <div style="font-size:13px;font-weight:800">👥 Labour Costs</div>
-          <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:1px">HireAway team — enter monthly salary</div>
-        </div>
-        <div style="font-family:var(--mono);font-size:18px;font-weight:900;color:var(--accent2)">
-          ${fmtP(totalLabour)}<span style="font-size:10px;font-weight:500;color:var(--text-muted)">${pLabel}</span>
-        </div>
+    <!-- ── LABOUR ── -->
+    <div style="margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:13px;font-weight:800">👥 Labour Costs</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:1px">HireAway team — click name to edit · Changes auto-save</div>
       </div>
-      ${Object.entries(p.labour).map(([k,l]) => `
-        <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;margin-bottom:6px;background:var(--surface3);border-radius:9px;border-left:3px solid var(--border)">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:12px;font-weight:700;margin-bottom:2px">${l.name}</div>
-            <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">${l.note}</div>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
-            <div style="display:flex;align-items:center;gap:4px">
-              <span style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">$/mo</span>
-              <input type="number" value="${l.cost}" min="0"
-                style="width:68px;padding:4px 7px;font-size:11px;font-weight:700;text-align:right;
-                  background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text)"
-                onchange="updatePnlCost('labour','${k}',this.value);renderToolCosts(getPnl())">
-            </div>
-            ${isAnnual ? `<div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent4)">${fmt(l.cost*12)}/yr</div>` : ''}
-          </div>
-        </div>`).join('')}
+      <div style="font-family:var(--mono);font-size:18px;font-weight:900;color:var(--accent2)">
+        ${fmtP(totalLabour)}<span style="font-size:10px;font-weight:400;color:var(--text-muted)">${pLabel}</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px">
+      ${Object.entries(p.labour).map(([k,l]) => toolRow('labour', k, l)).join('')}
+      <button onclick="addPnlTool('labour')"
+        style="width:100%;padding:8px;background:transparent;border:1px dashed var(--border);border-radius:8px;
+          color:var(--text-dim);font-family:var(--mono);font-size:10px;cursor:pointer;margin-top:4px;
+          display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s"
+        onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+        onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-dim)'">
+        + Add Labour / Contractor Cost
+      </button>
     </div>
 
     <!-- TOTAL COGS -->
-    <div style="margin-top:12px;padding:12px 14px;background:linear-gradient(135deg,rgba(224,85,85,0.08),rgba(224,85,85,0.04));
-      border:1px solid rgba(224,85,85,0.2);border-radius:10px;display:flex;align-items:center;justify-content:space-between">
+    <div style="padding:12px 16px;background:linear-gradient(135deg,rgba(224,85,85,0.1),rgba(224,85,85,0.04));
+      border:1px solid rgba(224,85,85,0.25);border-radius:10px;display:flex;align-items:center;justify-content:space-between">
       <div>
         <div style="font-weight:800;font-size:13px">Total COGS</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:2px">Tools + Labour</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:1px">Tools + Labour</div>
       </div>
       <div style="text-align:right">
-        <div style="font-family:var(--mono);font-size:22px;font-weight:900;color:var(--danger)">${fmtP(totalTools+totalLabour)}<span style="font-size:11px;font-weight:500;color:var(--text-muted)">${pLabel}</span></div>
-        ${isAnnual ? '' : `<div style="font-family:var(--mono);font-size:10px;color:var(--accent4)">${fmt((totalTools+totalLabour)*12)}/yr equiv.</div>`}
+        <div style="font-family:var(--mono);font-size:22px;font-weight:900;color:var(--danger)">
+          ${fmtP(totalTools+totalLabour)}<span style="font-size:11px;font-weight:400;color:var(--text-muted)">${pLabel}</span>
+        </div>
+        ${isAnnual
+          ? `<div style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">${fmt(totalTools+totalLabour)}/mo equiv.</div>`
+          : `<div style="font-family:var(--mono);font-size:9px;color:var(--accent4)">${fmt((totalTools+totalLabour)*12)}/yr projection</div>`
+        }
       </div>
     </div>`;
 }
@@ -7593,17 +7617,44 @@ function renderCostPerEmail(p) {
 }
 
 // ── CRUD ──
-function updatePnlCost(section, key, value) {
+function updatePnlField(section, key, field, value) {
   const cfg = getPnlCfg();
-  if (!cfg[section]) cfg[section] = {};
+  if (!cfg[section])      cfg[section] = {};
   if (!cfg[section][key]) cfg[section][key] = {};
-  cfg[section][key].cost = Number(value);
-  // Auto-calculate annual total if billing is annual
-  const defaults = PNL_DEFAULTS[section]?.[key];
-  if (defaults?.billing === 'annual') {
-    cfg[section][key].annualTotal = Number(value) * 12;
+  cfg[section][key][field] = value;
+  // If cost changed and billing is annual, update annualTotal
+  if (field === 'cost') {
+    cfg[section][key].cost = Number(value);
+    const current = getPnl()[section]?.[key];
+    if (current?.billing === 'annual') {
+      cfg[section][key].annualTotal = Number(value) * 12;
+    }
   }
   savePnlCfgRaw(cfg);
+}
+
+function updatePnlCost(section, key, value) {
+  updatePnlField(section, key, 'cost', Number(value));
+}
+
+function addPnlTool(section) {
+  const cfg = getPnlCfg();
+  if (!cfg[section]) cfg[section] = {};
+  const newKey = 'custom_' + Date.now();
+  cfg[section][newKey] = { name:'New Tool', cost:0, billing:'monthly', note:'Click to edit' };
+  savePnlCfgRaw(cfg);
+  renderToolCosts(getPnl());
+  toast('New cost item added — click the name to edit', 'success');
+}
+
+function removePnlTool(section, key) {
+  const cfg = getPnlCfg();
+  if (cfg[section]?.[key]) {
+    delete cfg[section][key];
+    savePnlCfgRaw(cfg);
+    renderToolCosts(getPnl());
+    toast('Cost item removed', 'info');
+  }
 }
 
 function updateToolBilling(key, billing) {
