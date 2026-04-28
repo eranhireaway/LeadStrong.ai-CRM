@@ -751,6 +751,7 @@ textarea{resize:vertical;min-height:80px;}
     </div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-secondary btn-sm" onclick="renderIntelligence()">↺ Refresh</button>
+      <button class="btn btn-gold btn-sm" onclick="reResearchPoorQuality()">🔄 Fix Poor Research</button>
       <button class="btn btn-gold btn-sm" onclick="exportIntelReport()">⬇ Export Report</button>
       <button class="btn btn-primary" onclick="showView('contacts');setTimeout(()=>researchAll(),200)">🧠 Research All Contacts</button>
     </div>
@@ -6978,61 +6979,59 @@ function renderIntelCards() {
     const score    = readinessScore(c);
     const research = c.geminiResearch || '';
 
-    // Smart parser — handles your exact prompt format (FIELD: value) and numbered formats
+    // Robust research parser — handles any Gemini output format
     const parseResearch = (text) => {
-      if (!text || text.trim() === '') return { coreBusiness:'—', growthSignals:'—', painPoints:'—', recommendation:'—', hook:'—', websiteDetail:'—' };
-      
-      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 3);
-      
-      // Extract by label (your prompt format: "WHAT THEY DO: ...")
-      const getLabel = (...labels) => {
+      if (!text || text.trim().length < 10) return { coreBusiness:'—', growthSignals:'—', painPoints:'—', recommendation:'—', hook:'—', websiteDetail:'—' };
+
+      // Strip preamble — find first labelled field and start from there
+      const fieldOrder = ['WHAT THEY DO','LEADSTRONG PAIN POINT','HIREAWAY PAIN POINT','WEBSITE DETAIL','SERVICE FIT','OUTREACH HOOK'];
+      let workingText = text;
+      const firstFieldIdx = Math.min(...fieldOrder.map(f => {
+        const idx = text.toUpperCase().indexOf(f + ':');
+        return idx >= 0 ? idx : Infinity;
+      }).filter(i => i !== Infinity));
+      if (firstFieldIdx > 0 && firstFieldIdx !== Infinity) {
+        workingText = text.slice(firstFieldIdx);
+      }
+
+      // Extract a labelled field value
+      const getField = (...labels) => {
         for (const label of labels) {
-          const line = lines.find(l => l.toUpperCase().startsWith(label.toUpperCase() + ':'));
-          if (line) {
-            const val = line.slice(label.length + 1).trim();
-            if (val.length > 5 && val !== 'N/A') return val;
+          // Match "LABEL: value" — greedily up to next labelled field or end
+          const pattern = new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '[:\\s]+([\\s\\S]*?)(?=\\n[A-Z][A-Z ]+:|$)', 'i');
+          const m = workingText.match(pattern);
+          if (m && m[1]) {
+            const val = m[1].trim().replace(/^\[|\]$/g,'').trim();
+            if (val.length > 5 && val !== 'N/A' && !val.startsWith('[')) return val;
           }
-          // Multi-line: label on one line, content on next
-          const idx = lines.findIndex(l => l.toUpperCase().trim() === label.toUpperCase() + ':');
-          if (idx >= 0 && lines[idx+1]) return lines[idx+1].trim();
         }
         return null;
       };
 
       // Numbered format fallback: "1. ..."
       const getNumbered = (n) => {
-        const line = lines.find(l => new RegExp('^' + n + '[\\.):]').test(l));
-        return line ? line.replace(/^\d+[\.\):]\s*/, '').trim() : null;
+        const m = text.match(new RegExp('^' + n + '[.):] (.+?)(?=\\n\\d|$)', 'm'));
+        return m ? m[1].trim() : null;
       };
 
-      // Keyword search fallback
-      const getKeyword = (...kws) => {
-        for (const kw of kws) {
-          const line = lines.find(l => l.toLowerCase().includes(kw) && l.includes(':'));
-          if (line) { const v = line.split(':').slice(1).join(':').trim(); if (v.length > 5) return v; }
-        }
-        return null;
-      };
+      const coreBusiness   = getField('WHAT THEY DO','CORE BUSINESS') || getNumbered(1) || text.split('\n').find(l=>l.trim().length>20) || '—';
+      const lsPain         = getField('LEADSTRONG PAIN POINT','LEADSTRONG') || getNumbered(2) || null;
+      const haPain         = getField('HIREAWAY PAIN POINT','HIREAWAY') || getNumbered(3) || null;
+      const websiteDetail  = getField('WEBSITE DETAIL','WEBSITE','TAGLINE') || getNumbered(4) || '—';
+      const serviceFit     = getField('SERVICE FIT','SERVICE','RECOMMENDATION','RECOMMENDED') || getNumbered(5) || '—';
+      const hook           = getField('OUTREACH HOOK','HOOK','PERSONALIZ','OPENING') || getNumbered(6) || getNumbered(5) || '—';
 
-      const sentences = text.split(/[.!?]+/).map(s => s.replace(/^[\d\.\):\s]+/, '').trim()).filter(s => s.length > 20);
+      // Combine LS + HA pain points into painPoints field
+      const painParts = [
+        lsPain ? `🎯 LeadStrong: ${lsPain}` : null,
+        haPain ? `🏢 HireAway: ${haPain}` : null,
+      ].filter(Boolean);
+      const painPoints = painParts.length ? painParts.join('\n') : (getField('PAIN POINT','PAIN POINTS','CHALLENGES') || '—');
 
-      const coreBusiness   = getLabel('WHAT THEY DO','CORE BUSINESS','BUSINESS') || getNumbered(1) || getKeyword('what they do','core business') || sentences[0] || '—';
-      const lsPainPoint    = getLabel('LEADSTRONG PAIN POINT','LEADSTRONG') || getNumbered(2) || getKeyword('leadstrong','lead gen','pipeline','outreach') || sentences[1] || '—';
-      const haPainPoint    = getLabel('HIREAWAY PAIN POINT','HIREAWAY') || getNumbered(3) || getKeyword('hireaway','hiring','staffing','recruitment','talent') || sentences[2] || '—';
-      const websiteDetail  = getLabel('WEBSITE DETAIL') || getKeyword('tagline','detail','found on') || '—';
-      const serviceFit     = getLabel('SERVICE FIT') || getKeyword('service fit','recommend') || getNumbered(4) || '—';
-      const hook           = getLabel('OUTREACH HOOK','HOOK','PERSONALIZ') || getNumbered(5) || getKeyword('hook','outreach','open with','personaliz') || sentences[sentences.length-1] || '—';
-
-      // Combine pain points into painPoints field
-      const painPoints = [
-        lsPainPoint !== '—' ? `LeadStrong: ${lsPainPoint}` : '',
-        haPainPoint !== '—' ? `HireAway: ${haPainPoint}` : '',
-      ].filter(Boolean).join('\n') || '—';
-
-      return { coreBusiness, growthSignals: websiteDetail, painPoints, recommendation: serviceFit, hook, websiteDetail };
+      return { coreBusiness, growthSignals: websiteDetail, painPoints, recommendation: serviceFit, hook, websiteDetail, lsPain:lsPain||'—', haPain:haPain||'—' };
     };
 
-    const { coreBusiness, growthSignals, painPoints, recommendation, hook, websiteDetail } = parseResearch(research);
+    const { coreBusiness, growthSignals, painPoints, recommendation, hook, websiteDetail, lsPain, haPain } = parseResearch(research);
 
     const scoreColor = score >= 80 ? '#00bfa6' : score >= 50 ? '#f0c040' : '#e05555';
     const scoreLabel = score >= 80 ? 'Ready' : score >= 50 ? 'In Progress' : 'Needs Work';
@@ -7041,7 +7040,7 @@ function renderIntelCards() {
       <div class="card" style="border:1px solid ${sc.border};border-top:3px solid ${sc.color};padding:0;overflow:hidden;display:flex;flex-direction:column">
 
         <!-- RESEARCH QUALITY CHECK -->
-        ${(research.length < 100 || research.includes("Here's your") && research.length < 150) ? `
+        ${(research.split(' ').filter(w=>w.length>2).length < 60 || research.toLowerCase().includes("here's your") || research.toLowerCase().includes("i'll research") || research.toLowerCase().includes("i don't have")) ? `
         <div style="padding:10px 14px;background:rgba(224,85,85,0.08);border-bottom:1px solid rgba(224,85,85,0.2);font-family:var(--mono);font-size:10px;color:#ff7070;display:flex;align-items:center;gap:8px">
           <span>⚠</span>
           <span>Research incomplete — Gemini returned a poor response. Click the 🔄 button to re-research this contact.</span>
@@ -7071,15 +7070,21 @@ function renderIntelCards() {
           <div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);line-height:1.7">${coreBusiness}</div>
         </div>
 
-        <!-- PAIN POINTS + GROWTH -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border)">
-          <div style="padding:12px 14px;border-right:1px solid var(--border)">
-            <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#e05555;margin-bottom:6px">⚡ Pain Points</div>
-            <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6">${painPoints}</div>
+        <!-- PAIN POINTS — LS + HA SPLIT -->
+        <div style="border-bottom:1px solid var(--border)">
+          <div style="display:grid;grid-template-columns:1fr 1fr">
+            <div style="padding:10px 14px;border-right:1px solid var(--border)">
+              <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#00bfa6;margin-bottom:5px">🎯 LeadStrong Pain Point</div>
+              <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6">${lsPain !== '—' ? lsPain : '<span style="color:var(--text-dim);font-style:italic">Re-research to populate</span>'}</div>
+            </div>
+            <div style="padding:10px 14px">
+              <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#f0c040;margin-bottom:5px">🏢 HireAway Pain Point</div>
+              <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6">${haPain !== '—' ? haPain : '<span style="color:var(--text-dim);font-style:italic">Re-research to populate</span>'}</div>
+            </div>
           </div>
-          <div style="padding:12px 14px">
-            <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#00bfa6;margin-bottom:6px">🌐 Website Detail</div>
-            <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6">${growthSignals}</div>
+          <div style="padding:8px 14px;border-top:1px solid var(--border);background:rgba(0,0,0,0.1)">
+            <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#7ec8c8;margin-bottom:4px">🌐 Website Detail</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);line-height:1.6;font-style:${growthSignals!=='—'?'normal':'italic'}">${growthSignals !== '—' ? growthSignals : '<span style="color:var(--text-dim)">Re-research to populate</span>'}</div>
           </div>
         </div>
 
@@ -7154,7 +7159,10 @@ async function reResearchPoorQuality() {
   const poorQuality = contacts.filter(c => {
     if (!c.geminiResearch) return false;
     const r = c.geminiResearch;
-    return r.length < 150 || (r.includes("Here's your") && r.length < 200) || !r.includes('1.');
+    const wordCount = r.split(' ').filter(w=>w.length>2).length;
+    const hasStructure = r.includes('WHAT THEY DO') || r.includes('LEADSTRONG') || r.includes('PAIN POINT') || /\d\.\s/.test(r);
+    const isGeneric = r.toLowerCase().includes("here's your") || r.toLowerCase().includes("i'll research") || r.toLowerCase().includes("i don't have");
+    return wordCount < 60 || isGeneric || !hasStructure;
   });
 
   if (!poorQuality.length) {
